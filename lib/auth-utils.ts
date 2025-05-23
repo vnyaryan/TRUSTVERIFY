@@ -1,27 +1,4 @@
-import bcryptjs from "bcryptjs"
-
-/**
- * Hash a password using bcrypt
- */
-export async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 12
-  return bcryptjs.hash(password, saltRounds)
-}
-
-/**
- * Verify a password against its hash
- */
-export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-  return bcryptjs.compare(password, hashedPassword)
-}
-
-/**
- * Sanitize user input by trimming whitespace
- */
-export function sanitizeInput(input: string): string {
-  if (!input || typeof input !== "string") return ""
-  return input.trim()
-}
+import bcrypt from "bcryptjs"
 
 /**
  * Validate email format using regex
@@ -143,6 +120,34 @@ export function isValidUsername(username: string): { isValid: boolean; message: 
 }
 
 /**
+ * Sanitize user input by trimming whitespace
+ */
+export function sanitizeInput(input: string): string {
+  if (!input || typeof input !== "string") return ""
+  return input.trim()
+}
+
+/**
+ * Hash a password using bcrypt
+ */
+export async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 12
+  return bcrypt.hash(password, saltRounds)
+}
+
+/**
+ * Verify a password against its hash
+ */
+export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+  try {
+    return await bcrypt.compare(password, hashedPassword)
+  } catch (error) {
+    console.error("Error verifying password:", error)
+    return false
+  }
+}
+
+/**
  * Generate a random string for tokens
  */
 export function generateRandomString(length = 32): string {
@@ -175,3 +180,9 @@ export function isValidPhoneNumber(phone: string): { isValid: boolean; message: 
 
   return { isValid: true, message: "Phone number is valid" }
 }
+
+// Aliases for backward compatibility
+export const validateEmail = isValidEmail
+export const validatePassword = (password: string) => isStrongPassword(password).isValid
+export const validateDateOfBirth = (dob: string) => isValidDateOfBirth(dob).isValid
+export const validateUsername = (username: string) => isValidUsername(username).isValid

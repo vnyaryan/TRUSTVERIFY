@@ -8,87 +8,91 @@ export interface AuthResponse {
 
 export async function loginClient(formData: FormData): Promise<AuthResponse> {
   try {
+    // Convert FormData to JSON
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+
+    console.log("Submitting login with email:", email)
+
     const response = await fetch("/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email: formData.get("email"),
-        password: formData.get("password"),
+        email,
+        password,
       }),
     })
 
-    const result = await response.json()
-    return result
+    if (!response.ok) {
+      console.error("Login failed with status:", response.status)
+      return {
+        success: false,
+        message: "An error occurred during login. Please try again.",
+      }
+    }
+
+    const data = await response.json()
+    return data
   } catch (error) {
     console.error("Login error:", error)
     return {
       success: false,
-      message: "An error occurred during login",
+      message: "An unexpected error occurred. Please try again.",
     }
   }
 }
 
 export async function signupClient(formData: FormData): Promise<AuthResponse> {
   try {
+    // Convert FormData to JSON
+    const formValues = Object.fromEntries(formData.entries())
+
     const response = await fetch("/api/auth/signup", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        email: formData.get("email"),
-        password: formData.get("password"),
-        confirmPassword: formData.get("confirmPassword"),
-        dateOfBirth: formData.get("dateOfBirth"),
-        username: formData.get("username"),
-        sex: formData.get("sex"),
-      }),
+      body: JSON.stringify(formValues),
     })
 
-    const result = await response.json()
-    return result
+    if (!response.ok) {
+      console.error("Signup failed with status:", response.status)
+      return {
+        success: false,
+        message: "An error occurred during signup. Please try again.",
+      }
+    }
+
+    const data = await response.json()
+    return data
   } catch (error) {
     console.error("Signup error:", error)
     return {
       success: false,
-      message: "An error occurred during signup",
+      message: "An unexpected error occurred. Please try again.",
     }
   }
 }
 
-export async function logoutClient(): Promise<AuthResponse> {
+export async function logoutClient(): Promise<void> {
   try {
-    const response = await fetch("/api/auth/logout", {
+    await fetch("/api/auth/logout", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
     })
-
-    const result = await response.json()
-    return result
+    window.location.href = "/"
   } catch (error) {
     console.error("Logout error:", error)
-    return {
-      success: false,
-      message: "An error occurred during logout",
-    }
+    window.location.href = "/"
   }
 }
 
 export async function getSessionClient(): Promise<{ isLoggedIn: boolean; email?: string }> {
   try {
-    const response = await fetch("/api/auth/session", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-
-    const result = await response.json()
-    return result
+    const response = await fetch("/api/auth/session")
+    const data = await response.json()
+    return data
   } catch (error) {
     console.error("Session check error:", error)
     return { isLoggedIn: false }

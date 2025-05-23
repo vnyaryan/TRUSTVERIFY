@@ -41,7 +41,8 @@ export default function LoginForm() {
 
     try {
       const formData = new FormData(event.currentTarget)
-      console.log("Submitting login form...")
+      console.log("Submitting login form with email:", formData.get("email"))
+
       const response = await loginClient(formData)
       console.log("Login response:", response)
 
@@ -52,7 +53,7 @@ export default function LoginForm() {
         router.refresh()
       } else {
         console.log("Login failed:", response.message)
-        setError(response.message)
+        setError(response.message || "Login failed. Please try again.")
         if (response.fieldErrors) {
           setFieldErrors(response.fieldErrors)
         }
