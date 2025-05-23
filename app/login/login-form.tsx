@@ -5,7 +5,6 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { loginClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,8 +18,9 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [debugInfo, setDebugInfo] = useState<string | null>(null)
+  const [apiStatus, setApiStatus] = useState<string | null>(null)
+  const [dbStatus, setDbStatus] = useState<string | null>(null)
 
   // Check for error parameter in URL
   useEffect(() => {
@@ -34,11 +34,36 @@ export default function LoginForm() {
     }
   }, [searchParams])
 
+  // Test API connection on mount
+  useEffect(() => {
+    async function testConnections() {
+      try {
+        // Test API
+        const apiResponse = await fetch("/api/test")
+        const apiData = await apiResponse.json()
+        setApiStatus(apiData.success ? "API is working" : "API test failed")
+
+        // Test DB
+        const dbResponse = await fetch("/api/db-test")
+        const dbData = await dbResponse.json()
+        setDbStatus(
+          dbData.success
+            ? `DB connected. Users table exists: ${dbData.userTableExists}, User count: ${dbData.userCount}`
+            : "DB test failed",
+        )
+      } catch (err) {
+        console.error("Connection test error:", err)
+        setApiStatus(`API test error: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+
+    testConnections()
+  }, [])
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsLoading(true)
     setError(null)
-    setFieldErrors({})
     setDebugInfo(null)
 
     try {
@@ -46,26 +71,41 @@ export default function LoginForm() {
       const email = formData.get("email") as string
       const password = formData.get("password") as string
 
-      console.log("Submitting login form with email:", email)
       setDebugInfo(`Attempting login with email: ${email}`)
 
-      const response = await loginClient(formData)
-      console.log("Login response:", response)
-      setDebugInfo((prev) => `${prev}\nLogin response: ${JSON.stringify(response)}`)
+      // Direct fetch instead of using the client utility
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      })
 
-      if (response.success) {
-        // Redirect to dashboard on successful login
-        console.log("Login successful, redirecting to dashboard...")
+      setDebugInfo((prev) => `${prev}\nResponse status: ${response.status}`)
+
+      let data
+      try {
+        data = await response.json()
+        setDebugInfo((prev) => `${prev}\nResponse data: ${JSON.stringify(data)}`)
+      } catch (jsonError) {
+        setDebugInfo(
+          (prev) =>
+            `${prev}\nError parsing response: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`,
+        )
+        throw new Error("Invalid response from server")
+      }
+
+      if (data.success) {
         setDebugInfo((prev) => `${prev}\nLogin successful, redirecting...`)
         router.push("/dashboard")
         router.refresh()
       } else {
-        console.log("Login failed:", response.message)
-        setDebugInfo((prev) => `${prev}\nLogin failed: ${response.message}`)
-        setError(response.message || "Login failed. Please try again.")
-        if (response.fieldErrors) {
-          setFieldErrors(response.fieldErrors)
-        }
+        setDebugInfo((prev) => `${prev}\nLogin failed: ${data.message}`)
+        setError(data.message || "Login failed. Please try again.")
       }
     } catch (err) {
       console.error("Login error:", err)
@@ -88,24 +128,21 @@ export default function LoginForm() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
+
+        {/* Connection status */}
+        <div className="mb-4 text-xs">
+          <div className={`p-1 rounded ${apiStatus?.includes("working") ? "bg-green-100" : "bg-yellow-100"}`}>
+            API Status: {apiStatus || "Testing..."}
+          </div>
+          <div className={`p-1 mt-1 rounded ${dbStatus?.includes("connected") ? "bg-green-100" : "bg-yellow-100"}`}>
+            DB Status: {dbStatus || "Testing..."}
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="name@example.com"
-              autoComplete="email"
-              required
-              aria-invalid={!!fieldErrors.email}
-              aria-describedby={fieldErrors.email ? "email-error" : undefined}
-            />
-            {fieldErrors.email && (
-              <p id="email-error" className="text-sm text-red-500">
-                {fieldErrors.email}
-              </p>
-            )}
+            <Input id="email" name="email" type="email" placeholder="name@example.com" autoComplete="email" required />
           </div>
 
           <div className="space-y-2">
@@ -118,8 +155,6 @@ export default function LoginForm() {
                 placeholder="••••••••"
                 autoComplete="current-password"
                 required
-                aria-invalid={!!fieldErrors.password}
-                aria-describedby={fieldErrors.password ? "password-error" : undefined}
               />
               <button
                 type="button"
@@ -130,11 +165,6 @@ export default function LoginForm() {
                 {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
               </button>
             </div>
-            {fieldErrors.password && (
-              <p id="password-error" className="text-sm text-red-500">
-                {fieldErrors.password}
-              </p>
-            )}
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
@@ -161,9 +191,10 @@ export default function LoginForm() {
           </Button>
         </form>
 
-        {process.env.NODE_ENV !== "production" && debugInfo && (
-          <div className="mt-4 p-2 bg-gray-100 text-xs font-mono whitespace-pre-wrap rounded">{debugInfo}</div>
-        )}
+        {/* Debug info - always show in this version */}
+        <div className="mt-4 p-2 bg-gray-100 text-xs font-mono whitespace-pre-wrap rounded">
+          {debugInfo || "No debug info yet"}
+        </div>
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-center">
