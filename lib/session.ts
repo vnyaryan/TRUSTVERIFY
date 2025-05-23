@@ -130,6 +130,8 @@ export async function getUserDetails(email: string) {
   try {
     const sql = getSql()
 
+    console.log(`Fetching user details for email: ${email}`)
+
     const users = await sql`
       SELECT 
         email_id, 
@@ -138,12 +140,16 @@ export async function getUserDetails(email: string) {
         phone_number, 
         gender, 
         date_of_birth, 
-        created_at 
+        created_at,
+        username
       FROM user_details 
       WHERE email_id = ${email}
     `
 
+    console.log(`Query result:`, users)
+
     if (users.length === 0) {
+      console.log(`No user found for email: ${email}`)
       return null
     }
 
@@ -157,6 +163,7 @@ export async function getUserDetails(email: string) {
       gender: user.gender,
       dateOfBirth: user.date_of_birth,
       createdAt: user.created_at,
+      username: user.username,
     }
   } catch (error) {
     console.error("Error getting user details:", error)

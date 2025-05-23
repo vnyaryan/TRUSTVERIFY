@@ -16,26 +16,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
 
 interface UserAccountNavProps {
-  user?: {
+  user: {
     name: string
     email: string
     image?: string
   }
-  isLoading?: boolean
 }
 
-export function UserAccountNav({ user, isLoading = false }: UserAccountNavProps) {
+export function UserAccountNav({ user }: UserAccountNavProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-
-  if (isLoading) {
-    return <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
-  }
-
-  if (!user) {
-    return null
-  }
 
   const handleSignOut = async () => {
     if (isLoggingOut) return // Prevent double-clicks
@@ -113,7 +104,7 @@ export function UserAccountNav({ user, isLoading = false }: UserAccountNavProps)
           <Avatar className="h-8 w-8">
             <AvatarImage src={user.image || "/placeholder.svg"} alt={user.name} />
             <AvatarFallback>
-              {user?.name ? user.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase()}
+              {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </Button>
