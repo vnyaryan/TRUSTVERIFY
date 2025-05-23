@@ -84,9 +84,9 @@ export function HeroSection() {
               </ul>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 mt-2">
-              <Link href="/register" className="w-full sm:w-auto">
+              <Link href="/signup" className="w-full sm:w-auto">
                 <Button size="lg" className="premium-button w-full sm:w-auto">
-                  Get Verified
+                  Get Verified - Sign Up Free
                 </Button>
               </Link>
               <Link href="/how-it-works" className="w-full sm:w-auto">
