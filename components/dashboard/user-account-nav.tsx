@@ -24,9 +24,17 @@ interface UserAccountNavProps {
 export function UserAccountNav({ user }: UserAccountNavProps) {
   const router = useRouter()
 
-  const handleSignOut = () => {
-    // Simulate sign out
-    router.push("/")
+  const handleSignOut = async () => {
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" })
+      if (response.ok) {
+        router.push("/auth/login")
+      } else {
+        console.error("Logout failed")
+      }
+    } catch (error) {
+      console.error("Error during logout:", error)
+    }
   }
 
   return (
