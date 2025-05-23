@@ -1,9 +1,10 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { signup } from "@/app/actions/auth-actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -43,24 +44,41 @@ export default function SignupForm() {
   const passwordRequirements = validatePassword(formData.password)
   const isPasswordValid = Object.values(passwordRequirements).every(Boolean)
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
     setIsLoading(true)
     setError(null)
     setFieldErrors({})
 
     try {
-      const response = await signup(formData)
+      const formData = new FormData(event.currentTarget)
 
-      if (response.success) {
-        // Show success message briefly before redirect
-        setError(null)
+      // Call the signup API
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.get("email"),
+          password: formData.get("password"),
+          confirmPassword: formData.get("confirmPassword"),
+          dateOfBirth: formData.get("dateOfBirth"),
+          username: formData.get("username"),
+          sex: formData.get("sex"),
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
         // Redirect to dashboard on successful signup
         router.push("/dashboard")
         router.refresh()
       } else {
-        setError(response.message)
-        if (response.fieldErrors) {
-          setFieldErrors(response.fieldErrors)
+        setError(result.message)
+        if (result.fieldErrors) {
+          setFieldErrors(result.fieldErrors)
         }
       }
     } catch (err) {
@@ -95,7 +113,7 @@ export default function SignupForm() {
             </Alert>
           )}
 
-          <form action={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">

@@ -1,71 +1,96 @@
-// Type definitions
-export type AuthResponse = {
+// Client-side authentication utilities
+
+export interface AuthResponse {
   success: boolean
   message: string
   fieldErrors?: Record<string, string>
 }
 
-// Client-side login function
 export async function loginClient(formData: FormData): Promise<AuthResponse> {
   try {
     const response = await fetch("/api/auth/login", {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: formData.get("email"),
+        password: formData.get("password"),
+      }),
     })
 
-    if (!response.ok) {
-      return {
-        success: false,
-        message: "An error occurred during login",
-      }
-    }
-
-    const data = await response.json()
-    return data
+    const result = await response.json()
+    return result
   } catch (error) {
     console.error("Login error:", error)
     return {
       success: false,
-      message: "An unexpected error occurred. Please try again.",
+      message: "An error occurred during login",
     }
   }
 }
 
-// Client-side signup function
 export async function signupClient(formData: FormData): Promise<AuthResponse> {
   try {
     const response = await fetch("/api/auth/signup", {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: formData.get("email"),
+        password: formData.get("password"),
+        confirmPassword: formData.get("confirmPassword"),
+        dateOfBirth: formData.get("dateOfBirth"),
+        username: formData.get("username"),
+        sex: formData.get("sex"),
+      }),
     })
 
-    if (!response.ok) {
-      return {
-        success: false,
-        message: "An error occurred during signup",
-      }
-    }
-
-    const data = await response.json()
-    return data
+    const result = await response.json()
+    return result
   } catch (error) {
     console.error("Signup error:", error)
     return {
       success: false,
-      message: "An unexpected error occurred. Please try again.",
+      message: "An error occurred during signup",
     }
   }
 }
 
-// Client-side logout function
-export async function logoutClient(): Promise<void> {
+export async function logoutClient(): Promise<AuthResponse> {
   try {
-    await fetch("/api/auth/logout", {
+    const response = await fetch("/api/auth/logout", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
     })
-    window.location.href = "/"
+
+    const result = await response.json()
+    return result
   } catch (error) {
     console.error("Logout error:", error)
-    window.location.href = "/"
+    return {
+      success: false,
+      message: "An error occurred during logout",
+    }
+  }
+}
+
+export async function getSessionClient(): Promise<{ isLoggedIn: boolean; email?: string }> {
+  try {
+    const response = await fetch("/api/auth/session", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+
+    const result = await response.json()
+    return result
+  } catch (error) {
+    console.error("Session check error:", error)
+    return { isLoggedIn: false }
   }
 }
