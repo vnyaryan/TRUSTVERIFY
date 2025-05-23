@@ -291,7 +291,7 @@ export async function logout(): Promise<void> {
   }
 
   // Redirect to login page
-  redirect("/login")
+  redirect("/")
 }
 
 // Check if user is authenticated

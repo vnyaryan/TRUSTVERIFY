@@ -60,12 +60,12 @@ export function Navbar() {
 
         <div className="hidden md:flex items-center gap-4">
           <ModeToggle />
-          <Link href="/login">
+          <Link href="/login" prefetch={false}>
             <Button variant="outline" size="sm" className="border-primary/20 hover:bg-primary-50">
               Log in
             </Button>
           </Link>
-          <Link href="/signup">
+          <Link href="/signup" prefetch={false}>
             <Button size="sm" className="premium-button">
               Sign up
             </Button>
@@ -105,12 +105,12 @@ export function Navbar() {
               ))}
             </nav>
             <div className="flex flex-col space-y-2">
-              <Link href="/login">
+              <Link href="/login" prefetch={false}>
                 <Button variant="outline" className="w-full border-primary/20 hover:bg-primary-50" size="sm">
                   Log in
                 </Button>
               </Link>
-              <Link href="/signup">
+              <Link href="/signup" prefetch={false}>
                 <Button className="w-full premium-button" size="sm">
                   Sign up
                 </Button>

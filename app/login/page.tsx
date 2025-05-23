@@ -1,12 +1,13 @@
-import { getSession } from "@/app/actions/auth-actions"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import LoginForm from "./login-form"
 
-export default async function LoginPage() {
-  // Check if user is already logged in
-  const { isLoggedIn } = await getSession()
+export default function LoginPage() {
+  // Check if user is already logged in by checking for session cookie
+  const sessionCookie = cookies().get("session")
 
-  if (isLoggedIn) {
+  // If user is already logged in, redirect to dashboard
+  if (sessionCookie) {
     redirect("/dashboard")
   }
 
