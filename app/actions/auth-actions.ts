@@ -46,6 +46,8 @@ function setSessionCookie(userId: string, email: string): void {
   const sessionToken = generateSessionToken()
   const twoWeeks = 14 * 24 * 60 * 60 * 1000
 
+  console.log(`Setting session cookie for user: ${email}`)
+
   // Store session in cookie
   cookies().set({
     name: "session",
@@ -85,6 +87,8 @@ export async function signup(formData: FormData): Promise<AuthResponse> {
   const username = sanitizeInput(formData.get("username") as string)
   const sex = sanitizeInput(formData.get("sex") as string)
 
+  console.log(`Processing signup for email: ${email}`)
+
   // Initialize field errors
   const fieldErrors: Record<string, string> = {}
 
@@ -123,6 +127,7 @@ export async function signup(formData: FormData): Promise<AuthResponse> {
 
   // Return validation errors if any
   if (Object.keys(fieldErrors).length > 0) {
+    console.log("Signup validation errors:", fieldErrors)
     return {
       success: false,
       message: "Please correct the errors in the form",
@@ -137,6 +142,7 @@ export async function signup(formData: FormData): Promise<AuthResponse> {
     `
 
     if (existingUser.length > 0) {
+      console.log(`Signup failed: Email already exists: ${email}`)
       return {
         success: false,
         message: "An account with this email already exists",
@@ -155,6 +161,8 @@ export async function signup(formData: FormData): Promise<AuthResponse> {
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate())) {
       age--
     }
+
+    console.log(`Creating new user with email: ${email}`)
 
     // Insert new user
     const result = await sql`
@@ -176,6 +184,7 @@ export async function signup(formData: FormData): Promise<AuthResponse> {
     `
 
     if (result.length > 0) {
+      console.log(`User created successfully: ${email}`)
       // Set session cookie
       setSessionCookie(result[0].email_id, email)
 
@@ -184,6 +193,7 @@ export async function signup(formData: FormData): Promise<AuthResponse> {
         message: "Account created successfully",
       }
     } else {
+      console.log(`Failed to create user: ${email}`)
       return {
         success: false,
         message: "Failed to create account",
@@ -204,6 +214,8 @@ export async function login(formData: FormData): Promise<AuthResponse> {
   const email = sanitizeInput(formData.get("email") as string).toLowerCase()
   const password = formData.get("password") as string
 
+  console.log(`Processing login for email: ${email}`)
+
   // Initialize field errors
   const fieldErrors: Record<string, string> = {}
 
@@ -218,6 +230,7 @@ export async function login(formData: FormData): Promise<AuthResponse> {
 
   // Return validation errors if any
   if (Object.keys(fieldErrors).length > 0) {
+    console.log("Login validation errors:", fieldErrors)
     return {
       success: false,
       message: "Please correct the errors in the form",
@@ -227,12 +240,14 @@ export async function login(formData: FormData): Promise<AuthResponse> {
 
   try {
     // Fetch user by email
+    console.log(`Fetching user with email: ${email}`)
     const users = await sql`
       SELECT email_id, password FROM user_details WHERE email_id = ${email}
     `
 
     // Check if user exists
     if (users.length === 0) {
+      console.log(`Login failed: User not found: ${email}`)
       return {
         success: false,
         message: "Invalid email or password",
@@ -243,9 +258,11 @@ export async function login(formData: FormData): Promise<AuthResponse> {
     const user = users[0]
 
     // Verify password
+    console.log(`Verifying password for user: ${email}`)
     const isPasswordValid = await verifyPassword(password, user.password)
 
     if (!isPasswordValid) {
+      console.log(`Login failed: Invalid password for user: ${email}`)
       return {
         success: false,
         message: "Invalid email or password",
@@ -253,6 +270,7 @@ export async function login(formData: FormData): Promise<AuthResponse> {
       }
     }
 
+    console.log(`Login successful for user: ${email}`)
     // Set session cookie
     setSessionCookie(user.email_id, email)
 
@@ -279,6 +297,7 @@ export async function logout(): Promise<void> {
   const sessionToken = cookies().get("session")?.value
 
   if (sessionToken) {
+    console.log("Processing logout request")
     // Delete session from database
     await sql`
       DELETE FROM user_sessions WHERE session_token = ${sessionToken}
@@ -288,6 +307,7 @@ export async function logout(): Promise<void> {
 
     // Clear session cookie
     cookies().delete("session")
+    console.log("Session cleared successfully")
   }
 
   // Redirect to login page
@@ -299,11 +319,13 @@ export async function getSession(): Promise<{ isLoggedIn: boolean; email?: strin
   const sessionToken = cookies().get("session")?.value
 
   if (!sessionToken) {
+    console.log("No session token found")
     return { isLoggedIn: false }
   }
 
   try {
     // Find valid session
+    console.log("Validating session token")
     const sessions = await sql`
       SELECT user_id, email, expires_at 
       FROM user_sessions 
@@ -311,13 +333,16 @@ export async function getSession(): Promise<{ isLoggedIn: boolean; email?: strin
     `
 
     if (sessions.length === 0) {
+      console.log("No valid session found for token")
       return { isLoggedIn: false }
     }
 
     const session = sessions[0]
+    console.log(`Found session for user: ${session.email}`)
 
     // Check if session is expired
     if (new Date(session.expires_at) < new Date()) {
+      console.log("Session has expired")
       // Delete expired session
       await sql`
         DELETE FROM user_sessions WHERE session_token = ${sessionToken}
@@ -327,6 +352,7 @@ export async function getSession(): Promise<{ isLoggedIn: boolean; email?: strin
       return { isLoggedIn: false }
     }
 
+    console.log(`User is authenticated: ${session.email}`)
     return {
       isLoggedIn: true,
       email: session.email,
