@@ -5,14 +5,25 @@ import type { NextRequest } from "next/server"
 const protectedPaths = ["/dashboard", "/profile", "/settings"]
 
 // Define which paths are accessible only to non-authenticated users
-const authPaths = ["/login", "/signup"]
+const authPaths = ["/auth/login", "/auth/register", "/login", "/signup"]
+
+// Define public paths that don't require any authentication checks
+const publicPaths = ["/", "/about", "/contact", "/pricing", "/how-it-works", "/why-trustverify"]
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const sessionCookie = request.cookies.get("session")
+
+  // Get session cookies
+  const sessionCookie = request.cookies.get("trustverify_session")
+  const legacySessionCookie = request.cookies.get("session")
 
   // Check if user is authenticated
-  const isAuthenticated = !!sessionCookie
+  const isAuthenticated = !!(sessionCookie || legacySessionCookie)
+
+  // Allow public paths without authentication checks
+  if (publicPaths.includes(pathname) || pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
+    return NextResponse.next()
+  }
 
   // Redirect authenticated users away from auth pages
   if (isAuthenticated && authPaths.some((path) => pathname.startsWith(path))) {
@@ -21,7 +32,21 @@ export function middleware(request: NextRequest) {
 
   // Redirect unauthenticated users away from protected pages
   if (!isAuthenticated && protectedPaths.some((path) => pathname.startsWith(path))) {
-    return NextResponse.redirect(new URL("/login", request.url))
+    // Store the attempted URL for redirect after login
+    const loginUrl = new URL("/auth/login", request.url)
+    loginUrl.searchParams.set("redirect", pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // Handle logout cleanup - if user tries to access protected routes without valid session
+  if (!isAuthenticated && protectedPaths.some((path) => pathname.startsWith(path))) {
+    const response = NextResponse.redirect(new URL("/", request.url))
+
+    // Clear any remaining session cookies
+    response.cookies.delete("trustverify_session")
+    response.cookies.delete("session")
+
+    return response
   }
 
   return NextResponse.next()

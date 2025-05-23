@@ -62,15 +62,37 @@ export function getSession(): SessionData | null {
     return sessionData
   } catch (error) {
     console.error("Error getting session:", error)
+    // If there's an error parsing the session, clear it
+    deleteSession()
     return null
   }
 }
 
 /**
- * Delete the current session
+ * Delete the current session - Enhanced for security
  */
 export function deleteSession(): void {
-  cookies().delete(SESSION_COOKIE)
+  try {
+    // Delete the main session cookie
+    cookies().delete(SESSION_COOKIE)
+
+    // Also try to delete any legacy session cookies
+    cookies().delete("session")
+
+    // Set expired cookies to ensure cleanup
+    cookies().set({
+      name: SESSION_COOKIE,
+      value: "",
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 0, // Expire immediately
+    })
+  } catch (error) {
+    console.error("Error deleting session:", error)
+    // Continue execution even if cookie deletion fails
+  }
 }
 
 /**
@@ -161,4 +183,16 @@ export function requireAuth(): SessionData {
   }
 
   return session
+}
+
+/**
+ * Validate session integrity
+ */
+export function validateSession(sessionData: SessionData): boolean {
+  if (!sessionData || typeof sessionData !== "object") {
+    return false
+  }
+
+  const requiredFields = ["sessionId", "email", "isLoggedIn", "createdAt"]
+  return requiredFields.every((field) => field in sessionData)
 }
