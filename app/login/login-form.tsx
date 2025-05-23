@@ -20,6 +20,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
 
   // Check for error parameter in URL
   useEffect(() => {
@@ -38,21 +39,29 @@ export default function LoginForm() {
     setIsLoading(true)
     setError(null)
     setFieldErrors({})
+    setDebugInfo(null)
 
     try {
       const formData = new FormData(event.currentTarget)
-      console.log("Submitting login form with email:", formData.get("email"))
+      const email = formData.get("email") as string
+      const password = formData.get("password") as string
+
+      console.log("Submitting login form with email:", email)
+      setDebugInfo(`Attempting login with email: ${email}`)
 
       const response = await loginClient(formData)
       console.log("Login response:", response)
+      setDebugInfo((prev) => `${prev}\nLogin response: ${JSON.stringify(response)}`)
 
       if (response.success) {
         // Redirect to dashboard on successful login
         console.log("Login successful, redirecting to dashboard...")
+        setDebugInfo((prev) => `${prev}\nLogin successful, redirecting...`)
         router.push("/dashboard")
         router.refresh()
       } else {
         console.log("Login failed:", response.message)
+        setDebugInfo((prev) => `${prev}\nLogin failed: ${response.message}`)
         setError(response.message || "Login failed. Please try again.")
         if (response.fieldErrors) {
           setFieldErrors(response.fieldErrors)
@@ -60,6 +69,7 @@ export default function LoginForm() {
       }
     } catch (err) {
       console.error("Login error:", err)
+      setDebugInfo((prev) => `${prev}\nError: ${err instanceof Error ? err.message : String(err)}`)
       setError("An unexpected error occurred. Please try again.")
     } finally {
       setIsLoading(false)
@@ -150,6 +160,10 @@ export default function LoginForm() {
             )}
           </Button>
         </form>
+
+        {process.env.NODE_ENV !== "production" && debugInfo && (
+          <div className="mt-4 p-2 bg-gray-100 text-xs font-mono whitespace-pre-wrap rounded">{debugInfo}</div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-center">

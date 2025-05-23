@@ -25,15 +25,11 @@ export async function loginClient(formData: FormData): Promise<AuthResponse> {
       }),
     })
 
-    if (!response.ok) {
-      console.error("Login failed with status:", response.status)
-      return {
-        success: false,
-        message: "An error occurred during login. Please try again.",
-      }
-    }
+    console.log("Login response status:", response.status)
 
     const data = await response.json()
+    console.log("Login response data:", data)
+
     return data
   } catch (error) {
     console.error("Login error:", error)
@@ -56,14 +52,6 @@ export async function signupClient(formData: FormData): Promise<AuthResponse> {
       },
       body: JSON.stringify(formValues),
     })
-
-    if (!response.ok) {
-      console.error("Signup failed with status:", response.status)
-      return {
-        success: false,
-        message: "An error occurred during signup. Please try again.",
-      }
-    }
 
     const data = await response.json()
     return data
