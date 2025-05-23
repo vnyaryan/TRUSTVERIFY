@@ -65,7 +65,7 @@ export function Navbar() {
               Log in
             </Button>
           </Link>
-          <Link href="/register">
+          <Link href="/signup">
             <Button size="sm" className="premium-button">
               Sign up
             </Button>
@@ -110,7 +110,7 @@ export function Navbar() {
                   Log in
                 </Button>
               </Link>
-              <Link href="/register">
+              <Link href="/signup">
                 <Button className="w-full premium-button" size="sm">
                   Sign up
                 </Button>
