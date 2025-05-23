@@ -1,6 +1,5 @@
 "use server"
 
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { sql } from "@/lib/db"
 import {
@@ -41,43 +40,7 @@ function generateSessionToken(): string {
   return crypto.randomBytes(32).toString("hex")
 }
 
-// Set session cookie
-function setSessionCookie(userId: string, email: string): void {
-  const sessionToken = generateSessionToken()
-  const twoWeeks = 14 * 24 * 60 * 60 * 1000
-
-  console.log(`Setting session cookie for user: ${email}`)
-
-  // Store session in cookie
-  cookies().set({
-    name: "session",
-    value: sessionToken,
-    httpOnly: true,
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: twoWeeks,
-  })
-
-  // Store session data in database
-  sql`
-    INSERT INTO user_sessions (
-      session_token, 
-      user_id, 
-      email, 
-      expires_at
-    ) VALUES (
-      ${sessionToken}, 
-      ${userId}, 
-      ${email}, 
-      ${new Date(Date.now() + twoWeeks)}
-    )
-  `.catch((error) => {
-    console.error("Failed to store session:", error)
-  })
-}
-
-// Signup action
+// Signup action - simplified without cookies
 export async function signup(formData: FormData): Promise<AuthResponse> {
   // Extract and sanitize form data
   const email = sanitizeInput(formData.get("email") as string).toLowerCase()
@@ -185,9 +148,6 @@ export async function signup(formData: FormData): Promise<AuthResponse> {
 
     if (result.length > 0) {
       console.log(`User created successfully: ${email}`)
-      // Set session cookie
-      setSessionCookie(result[0].email_id, email)
-
       return {
         success: true,
         message: "Account created successfully",
@@ -208,7 +168,7 @@ export async function signup(formData: FormData): Promise<AuthResponse> {
   }
 }
 
-// Login action
+// Login action - simplified without cookies
 export async function login(formData: FormData): Promise<AuthResponse> {
   // Extract and sanitize form data
   const email = sanitizeInput(formData.get("email") as string).toLowerCase()
@@ -271,9 +231,6 @@ export async function login(formData: FormData): Promise<AuthResponse> {
     }
 
     console.log(`Login successful for user: ${email}`)
-    // Set session cookie
-    setSessionCookie(user.email_id, email)
-
     return {
       success: true,
       message: "Login successful",
@@ -291,74 +248,15 @@ export async function login(formData: FormData): Promise<AuthResponse> {
 export const loginUser = login
 export const signupUser = signup
 
-// Logout action
+// Logout action - simplified without cookies
 export async function logout(): Promise<void> {
-  // Get current session token
-  const sessionToken = cookies().get("session")?.value
-
-  if (sessionToken) {
-    console.log("Processing logout request")
-    // Delete session from database
-    await sql`
-      DELETE FROM user_sessions WHERE session_token = ${sessionToken}
-    `.catch((error) => {
-      console.error("Failed to delete session:", error)
-    })
-
-    // Clear session cookie
-    cookies().delete("session")
-    console.log("Session cleared successfully")
-  }
-
+  console.log("Processing logout request")
   // Redirect to login page
   redirect("/")
 }
 
-// Check if user is authenticated
+// Check if user is authenticated - simplified without cookies
 export async function getSession(): Promise<{ isLoggedIn: boolean; email?: string }> {
-  const sessionToken = cookies().get("session")?.value
-
-  if (!sessionToken) {
-    console.log("No session token found")
-    return { isLoggedIn: false }
-  }
-
-  try {
-    // Find valid session
-    console.log("Validating session token")
-    const sessions = await sql`
-      SELECT user_id, email, expires_at 
-      FROM user_sessions 
-      WHERE session_token = ${sessionToken}
-    `
-
-    if (sessions.length === 0) {
-      console.log("No valid session found for token")
-      return { isLoggedIn: false }
-    }
-
-    const session = sessions[0]
-    console.log(`Found session for user: ${session.email}`)
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      console.log("Session has expired")
-      // Delete expired session
-      await sql`
-        DELETE FROM user_sessions WHERE session_token = ${sessionToken}
-      `
-
-      cookies().delete("session")
-      return { isLoggedIn: false }
-    }
-
-    console.log(`User is authenticated: ${session.email}`)
-    return {
-      isLoggedIn: true,
-      email: session.email,
-    }
-  } catch (error) {
-    console.error("Session verification error:", error)
-    return { isLoggedIn: false }
-  }
+  console.log("Session check - returning not logged in for now")
+  return { isLoggedIn: false }
 }

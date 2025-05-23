@@ -1,9 +1,11 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { login } from "@/app/actions/auth-actions"
+import { loginClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,14 +33,16 @@ export default function LoginForm() {
     }
   }, [searchParams])
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
     setIsLoading(true)
     setError(null)
     setFieldErrors({})
 
     try {
+      const formData = new FormData(event.currentTarget)
       console.log("Submitting login form...")
-      const response = await login(formData)
+      const response = await loginClient(formData)
       console.log("Login response:", response)
 
       if (response.success) {
@@ -73,7 +77,7 @@ export default function LoginForm() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        <form action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input

@@ -12,6 +12,47 @@ export interface SessionData {
 }
 
 /**
+ * Generate a secure session token
+ */
+export function generateSessionToken(): string {
+  return `session_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+}
+
+/**
+ * Create session data object
+ */
+export function createSessionData(email: string): SessionData {
+  return {
+    sessionId: generateSessionToken(),
+    email,
+    isLoggedIn: true,
+    createdAt: Date.now(),
+  }
+}
+
+/**
+ * Check if session is expired
+ */
+export function isSessionExpired(sessionData: SessionData): boolean {
+  const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000
+  return Date.now() - sessionData.createdAt > sevenDaysInMs
+}
+
+/**
+ * Validate session data structure
+ */
+export function isValidSessionData(data: any): data is SessionData {
+  return (
+    data &&
+    typeof data === "object" &&
+    typeof data.sessionId === "string" &&
+    typeof data.email === "string" &&
+    typeof data.isLoggedIn === "boolean" &&
+    typeof data.createdAt === "number"
+  )
+}
+
+/**
  * Create a new session for the user
  */
 export async function createSession(email: string): Promise<string> {

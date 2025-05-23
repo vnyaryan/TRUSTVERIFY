@@ -23,7 +23,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Get session cookies
+  // Get session cookies without using next/headers
   const sessionCookie = request.cookies.get("session")?.value
 
   // Check if user is authenticated
@@ -36,13 +36,11 @@ export function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages
   if (isAuthenticated && authPaths.some((path) => pathname === path)) {
-    console.log("Redirecting authenticated user from auth page to dashboard")
     return NextResponse.redirect(new URL("/dashboard", request.url))
   }
 
   // Redirect unauthenticated users away from protected pages
   if (!isAuthenticated && protectedPaths.some((path) => pathname.startsWith(path))) {
-    console.log("Redirecting unauthenticated user from protected page to login")
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
