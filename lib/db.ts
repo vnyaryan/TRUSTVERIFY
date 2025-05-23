@@ -1,14 +1,20 @@
 import { neon } from "@neondatabase/serverless"
 
-// Use the correct connection string as provided
+// Initialize the SQL client with the connection string
 const sql = neon(
   "postgresql://neondb_owner:npg_DXVMKp6Oxh3Q@ep-bold-water-a55uvkzl-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require",
 )
 
-// Add the getSql function as a named export
-export const getSql = () => sql
+// Export the SQL client as default
+export default sql
 
+// Export the SQL client as named export
 export { sql }
+
+// Export getSql function for compatibility
+export function getSql() {
+  return sql
+}
 
 export async function initializeDatabase() {
   try {

@@ -1,14 +1,14 @@
-import bcrypt from "bcrypt"
+import bcryptjs from "bcryptjs"
 
-// Password hashing with bcrypt (salt rounds of 12)
+// Password hashing with bcryptjs (salt rounds of 12)
 export async function hashPassword(password: string): Promise<string> {
   const saltRounds = 12
-  return await bcrypt.hash(password, saltRounds)
+  return await bcryptjs.hash(password, saltRounds)
 }
 
 // Password verification
 export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-  return await bcrypt.compare(password, hashedPassword)
+  return await bcryptjs.compare(password, hashedPassword)
 }
 
 // Email validation regex
