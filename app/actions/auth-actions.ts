@@ -269,6 +269,10 @@ export async function login(formData: FormData): Promise<AuthResponse> {
   }
 }
 
+// Add the missing exports that reference the existing functions
+export const loginUser = login
+export const signupUser = signup
+
 // Logout action
 export async function logout(): Promise<void> {
   // Get current session token

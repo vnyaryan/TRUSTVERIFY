@@ -5,6 +5,9 @@ const sql = neon(
   "postgresql://neondb_owner:npg_DXVMKp6Oxh3Q@ep-bold-water-a55uvkzl-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require",
 )
 
+// Add the getSql function as a named export
+export const getSql = () => sql
+
 export { sql }
 
 export async function initializeDatabase() {
