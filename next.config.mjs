@@ -1,11 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // App Router only configuration
   experimental: {
-    // Ensure both App Router and Pages Router work together
     appDir: true,
   },
-  // Ensure API routes are included in build
+  
+  // Ensure proper file extensions
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  
+  // Build configuration
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -15,6 +18,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  
+  // App Router optimizations
+  swcMinify: true,
+  
+  // Remove any Page Router references
+  trailingSlash: false,
 }
 
 export default nextConfig
