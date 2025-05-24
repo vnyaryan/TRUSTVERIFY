@@ -1,7 +1,5 @@
 {
   "pan_card": "not_verified",
   "aadhaar_card": "not_verified",
-  "passport": "not_verified",
-  "driving_license": "not_verified",
-  "voter_id": "not_verified"
+  "passport": "not_verified"
 }
