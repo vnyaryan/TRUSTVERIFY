@@ -4,7 +4,7 @@ import type React from "react"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, UserCircle, FileCheck, Shield, Share2, Settings, HelpCircle, FileText } from "lucide-react"
+import { LayoutDashboard, UserCircle, FileCheck, Shield } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface NavItem {
@@ -36,26 +36,6 @@ export function DashboardNav() {
       title: "Trust Score",
       href: "/dashboard/trust-score",
       icon: <Shield className="mr-2 h-4 w-4" />,
-    },
-    {
-      title: "Share & Export",
-      href: "/dashboard/share",
-      icon: <Share2 className="mr-2 h-4 w-4" />,
-    },
-    {
-      title: "Verification History",
-      href: "/dashboard/history",
-      icon: <FileText className="mr-2 h-4 w-4" />,
-    },
-    {
-      title: "Settings",
-      href: "/dashboard/settings",
-      icon: <Settings className="mr-2 h-4 w-4" />,
-    },
-    {
-      title: "Help & Support",
-      href: "/dashboard/support",
-      icon: <HelpCircle className="mr-2 h-4 w-4" />,
     },
   ]
 
