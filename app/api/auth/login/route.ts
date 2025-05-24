@@ -1,84 +1,99 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
-import bcrypt from "bcryptjs"
-import jwt from "jsonwebtoken"
-import { JWT_SECRET, TOKEN_EXPIRY, COOKIE_MAX_AGE } from "@/lib/constants"
-
-const sql = neon(process.env.DATABASE_URL!)
+import type { NextRequest } from "next/server"
+import { getUserByEmail } from "@/lib/db-operations"
+import { verifyPassword } from "@/lib/password-utils"
+import { validateEmail } from "@/lib/form-validation"
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const body = await request.json()
+    const { email, password } = body
 
-    // Validate input
+    // Validate required fields
     if (!email || !password) {
-      return NextResponse.json({ success: false, message: "Email and password are required" }, { status: 400 })
+      return Response.json(
+        {
+          success: false,
+          message: "Email and password are required",
+        },
+        { status: 400 },
+      )
     }
 
-    // Find user in database
-    const users = await sql`
-      SELECT * FROM user_details 
-      WHERE email = ${email}
-    `
-
-    if (users.length === 0) {
-      return NextResponse.json({ success: false, message: "Invalid credentials" }, { status: 401 })
+    // Validate email format
+    const emailError = validateEmail(email)
+    if (emailError) {
+      return Response.json(
+        {
+          success: false,
+          message: emailError,
+        },
+        { status: 400 },
+      )
     }
 
-    const user = users[0]
+    // Get user from database
+    const user = await getUserByEmail(email.toLowerCase())
+    if (!user) {
+      return Response.json(
+        {
+          success: false,
+          message: "Invalid email or password",
+        },
+        { status: 401 },
+      )
+    }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password)
-    if (!isValidPassword) {
-      return NextResponse.json({ success: false, message: "Invalid credentials" }, { status: 401 })
+    const isPasswordValid = await verifyPassword(password, user.password)
+    if (!isPasswordValid) {
+      return Response.json(
+        {
+          success: false,
+          message: "Invalid email or password",
+        },
+        { status: 401 },
+      )
     }
 
-    // Create JWT token
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        username: user.username,
-      },
-      JWT_SECRET,
-      { expiresIn: TOKEN_EXPIRY },
-    )
-
-    // Prepare user data (without password)
-    const userData = {
-      email: user.email,
-      username: user.username,
-      age: user.age,
-      sex: user.sex,
-    }
-
-    // Create response
-    const response = NextResponse.json({
+    // Create response with user data
+    const response = Response.json({
       success: true,
       message: "Login successful",
-      user: userData,
+      user: {
+        email: user.email_id,
+        username: user.username,
+        age: user.age,
+        sex: user.sex,
+      },
     })
 
-    // Set secure HTTP-only cookies
-    response.cookies.set("auth-token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: COOKIE_MAX_AGE,
-      path: "/",
-    })
+    // Set simple session cookie
+    const headers = new Headers(response.headers)
+    headers.set("Set-Cookie", `session=logged-in; Path=/; HttpOnly; SameSite=Strict; Max-Age=${60 * 60 * 24 * 7}`)
 
-    response.cookies.set("user-session", JSON.stringify(userData), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: COOKIE_MAX_AGE,
-      path: "/",
+    return new Response(response.body, {
+      status: response.status,
+      headers,
     })
-
-    return response
   } catch (error) {
-    console.error("Login error:", error)
-    return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 })
+    console.error("Login API error:", error)
+    return Response.json(
+      {
+        success: false,
+        message: "Internal server error. Please try again later.",
+      },
+      { status: 500 },
+    )
   }
+}
+
+export async function GET() {
+  return Response.json(
+    {
+      success: false,
+      message: "Method not allowed. Use POST to login.",
+      allowedMethods: ["POST"],
+    },
+    { status: 405 },
+  )
 }

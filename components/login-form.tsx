@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -10,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react"
-import { login } from "@/lib/auth"
 
 export function LoginForm() {
   const router = useRouter()
@@ -28,16 +26,32 @@ export function LoginForm() {
     setError("")
 
     try {
-      const result = await login(formData.email, formData.password)
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      })
+
+      const result = await response.json()
 
       if (result.success) {
+        // Store user data in localStorage temporarily
+        localStorage.setItem("user", JSON.stringify(result.user))
+        localStorage.setItem("isLoggedIn", "true")
+
         // Redirect to profile page
         router.push("/profile")
       } else {
-        setError(result.message)
+        setError(result.message || "Login failed")
       }
     } catch (error) {
-      setError("An unexpected error occurred")
+      console.error("Login error:", error)
+      setError("Network error. Please check your connection and try again.")
     } finally {
       setIsLoading(false)
     }
@@ -48,6 +62,8 @@ export function LoginForm() {
       ...prev,
       [e.target.name]: e.target.value,
     }))
+    // Clear error when user starts typing
+    if (error) setError("")
   }
 
   return (

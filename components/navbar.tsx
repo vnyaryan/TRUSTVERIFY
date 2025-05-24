@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -24,10 +24,7 @@ export function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<any>(null)
 
-  useEffect(() => {
-    setIsLoggedIn(isAuthenticated())
-    setUser(getCurrentUser())
-  }, [])
+  // Remove the useEffect completely for now
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
@@ -68,9 +65,9 @@ export function Navbar() {
 
         <div className="hidden md:flex items-center gap-4">
           <ModeToggle />
-          {isLoggedIn && user ? (
+          {isAuthenticated() && getCurrentUser() ? (
             <>
-              <span className="text-sm text-muted-foreground">Welcome, {user.username}</span>
+              <span className="text-sm text-muted-foreground">Welcome, {getCurrentUser().username}</span>
               <Link href="/profile">
                 <Button variant="outline" size="sm" className="border-primary/20 hover:bg-primary-50">
                   Profile
@@ -134,7 +131,7 @@ export function Navbar() {
               ))}
             </nav>
             <div className="flex flex-col space-y-2">
-              {isLoggedIn && user ? (
+              {isAuthenticated() && getCurrentUser() ? (
                 <>
                   <Link href="/profile">
                     <Button variant="outline" className="w-full border-primary/20 hover:bg-primary-50" size="sm">
