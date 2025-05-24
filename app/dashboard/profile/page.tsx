@@ -16,7 +16,6 @@ export default function ProfilePage() {
     const fetchUserData = () => {
       try {
         const userData = getCurrentUser()
-        console.log("Raw user data from localStorage:", userData) // Debug log
 
         if (userData) {
           setUser(userData)
@@ -97,18 +96,8 @@ export default function ProfilePage() {
     )
   }
 
-  // Debug: Check all possible date field variations
-  const dateOfBirth = user?.dateOfBirth || user?.date_of_birth || user?.dob || user?.birthDate
-  console.log("Date of birth variations:", {
-    dateOfBirth: user?.dateOfBirth,
-    date_of_birth: user?.date_of_birth,
-    dob: user?.dob,
-    birthDate: user?.birthDate,
-    finalValue: dateOfBirth,
-  })
-
-  const userAge = calculateAge(dateOfBirth)
-  const formattedDate = formatDate(dateOfBirth)
+  const userAge = calculateAge(user?.dateOfBirth)
+  const formattedDate = formatDate(user?.dateOfBirth)
 
   return (
     <div className="flex flex-col gap-4">
@@ -131,16 +120,6 @@ export default function ProfilePage() {
               <CardDescription>Your registered account information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Debug Information - Remove in production */}
-              <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-md border border-yellow-200 dark:border-yellow-800">
-                <p className="text-xs font-mono text-yellow-800 dark:text-yellow-200">
-                  Debug: User object keys: {Object.keys(user || {}).join(", ")}
-                </p>
-                <p className="text-xs font-mono text-yellow-800 dark:text-yellow-200 mt-1">
-                  DOB value: {JSON.stringify(dateOfBirth)}
-                </p>
-              </div>
-
               {/* Email Address */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm font-medium">
@@ -183,7 +162,7 @@ export default function ProfilePage() {
                   Gender
                 </Label>
                 <div className="p-3 bg-muted/30 rounded-md border">
-                  <p className="text-sm font-medium capitalize">{user?.gender || user?.sex || "Not specified"}</p>
+                  <p className="text-sm font-medium capitalize">{user?.sex || "Not specified"}</p>
                 </div>
               </div>
             </CardContent>
