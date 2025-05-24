@@ -1,4 +1,6 @@
 "use client"
+
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { User, LogOut } from "lucide-react"
 import {
@@ -27,11 +29,6 @@ export function UserAccountNav({ user }: UserAccountNavProps) {
     router.push("/")
   }
 
-  const handleProfileClick = () => {
-    // Force navigation to dashboard profile
-    router.push("/dashboard/profile")
-  }
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -43,9 +40,11 @@ export function UserAccountNav({ user }: UserAccountNavProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem className="cursor-pointer" onSelect={handleProfileClick}>
-          <User className="mr-2 h-4 w-4" />
-          <span>Profile</span>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/profile" className="cursor-pointer">
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer" onSelect={handleSignOut}>
