@@ -1,4 +1,4 @@
-import { sql } from "./db"
+import { sql } from "@vercel/postgres"
 import { hash } from "bcrypt"
 
 export interface UserData {
