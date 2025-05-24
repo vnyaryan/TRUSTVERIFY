@@ -15,9 +15,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface UserAccountNavProps {
   user: {
-    name: string
+    name?: string
     email: string
-    image: string
+    image?: string
   }
 }
 
@@ -25,24 +25,38 @@ export function UserAccountNav({ user }: UserAccountNavProps) {
   const router = useRouter()
 
   const handleSignOut = () => {
-    // Simulate sign out
+    // Clear localStorage and redirect
+    localStorage.removeItem("user")
+    localStorage.removeItem("isLoggedIn")
     router.push("/")
   }
+
+  // Generate display name from email if name is not available
+  const displayName = user.name || user.email.split("@")[0] || "User"
+
+  // Generate initials for avatar
+  const initials = user.name
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    : user.email[0].toUpperCase()
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.image || "/placeholder.svg"} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarImage src={user.image || "/placeholder.svg"} alt={displayName} />
+            <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <div className="flex items-center justify-start gap-2 p-2">
           <div className="flex flex-col space-y-1 leading-none">
-            <p className="font-medium">{user.name}</p>
+            <p className="font-medium">{displayName}</p>
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
         </div>
