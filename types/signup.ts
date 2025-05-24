@@ -3,8 +3,6 @@ export interface SignupFormData {
   password: string
   dateOfBirth: string
   sex: string
-  firstName: string
-  lastName: string
 }
 
 export interface ValidationErrors {
@@ -12,8 +10,6 @@ export interface ValidationErrors {
   password?: string
   dateOfBirth?: string
   sex?: string
-  firstName?: string
-  lastName?: string
 }
 
 export interface DatabaseUser {
@@ -23,6 +19,4 @@ export interface DatabaseUser {
   created_at: Date
   updated_at: Date
   sex: string
-  first_name: string
-  last_name: string
 }

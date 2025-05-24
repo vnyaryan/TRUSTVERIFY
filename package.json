@@ -42,7 +42,6 @@
     "@testing-library/react": "latest",
     "@testing-library/user-event": "latest",
     "@vercel/blob": "latest",
-    "@vercel/postgres": "latest",
     "autoprefixer": "^10.4.20",
     "bcryptjs": "latest",
     "class-variance-authority": "^0.7.1",

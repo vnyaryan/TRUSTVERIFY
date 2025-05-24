@@ -1,22 +1,4 @@
-// lib/form-validation.ts
-
-export interface SignupFormData {
-  email?: string
-  password?: string
-  firstName?: string
-  lastName?: string
-  dateOfBirth?: string
-  sex?: string
-}
-
-export interface ValidationErrors {
-  email?: string
-  password?: string
-  firstName?: string
-  lastName?: string
-  dateOfBirth?: string
-  sex?: string
-}
+import type { SignupFormData, ValidationErrors, PasswordStrength } from "@/types/signup"
 
 // Email validation
 export function validateEmail(email: string): string | null {
@@ -24,8 +6,13 @@ export function validateEmail(email: string): string | null {
     return "Email is required"
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return "Invalid email format"
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    return "Please enter a valid email address"
+  }
+
+  if (email.length > 255) {
+    return "Email address is too long"
   }
 
   return null
@@ -41,54 +28,24 @@ export function validatePassword(password: string): string | null {
     return "Password must be at least 8 characters long"
   }
 
-  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])/.test(password)) {
-    return "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+  if (password.length > 128) {
+    return "Password is too long (max 128 characters)"
   }
 
-  return null
-}
-
-// First name validation
-export function validateFirstName(firstName: string): string | null {
-  if (!firstName) {
-    return "First name is required"
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least one uppercase letter"
   }
 
-  const trimmedName = firstName.trim()
-
-  if (trimmedName.length < 2) {
-    return "First name must be at least 2 characters long"
+  if (!/[a-z]/.test(password)) {
+    return "Password must contain at least one lowercase letter"
   }
 
-  if (trimmedName.length > 50) {
-    return "First name must be no more than 50 characters long"
+  if (!/\d/.test(password)) {
+    return "Password must contain at least one number"
   }
 
-  if (!/^[a-zA-Z\s\-']+$/.test(trimmedName)) {
-    return "First name can only contain letters, spaces, hyphens, and apostrophes"
-  }
-
-  return null
-}
-
-// Last name validation
-export function validateLastName(lastName: string): string | null {
-  if (!lastName) {
-    return "Last name is required"
-  }
-
-  const trimmedName = lastName.trim()
-
-  if (trimmedName.length < 2) {
-    return "Last name must be at least 2 characters long"
-  }
-
-  if (trimmedName.length > 50) {
-    return "Last name must be no more than 50 characters long"
-  }
-
-  if (!/^[a-zA-Z\s\-']+$/.test(trimmedName)) {
-    return "Last name can only contain letters, spaces, hyphens, and apostrophes"
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    return "Password must contain at least one special character"
   }
 
   return null
@@ -100,11 +57,24 @@ export function validateDateOfBirth(dateOfBirth: string): string | null {
     return "Date of birth is required"
   }
 
-  const dob = new Date(dateOfBirth)
-  const now = new Date()
+  const date = new Date(dateOfBirth)
+  const today = new Date()
 
-  if (dob > now) {
+  if (isNaN(date.getTime())) {
+    return "Please enter a valid date"
+  }
+
+  if (date > today) {
     return "Date of birth cannot be in the future"
+  }
+
+  const age = calculateAge(dateOfBirth)
+  if (age < 18) {
+    return "You must be at least 18 years old to register"
+  }
+
+  if (age > 120) {
+    return "Please enter a valid date of birth"
   }
 
   return null
@@ -113,16 +83,57 @@ export function validateDateOfBirth(dateOfBirth: string): string | null {
 // Sex validation
 export function validateSex(sex: string): string | null {
   if (!sex) {
-    return "Sex is required"
+    return "Please select your sex"
   }
 
-  if (!["male", "female", "other"].includes(sex.toLowerCase())) {
-    return "Invalid sex value"
+  const validOptions = ["male", "female", "other", "prefer-not-to-say"]
+  if (!validOptions.includes(sex)) {
+    return "Please select a valid option"
   }
 
   return null
 }
 
+// Calculate age from date of birth
+export function calculateAge(dateOfBirth: string): number {
+  if (!dateOfBirth) return 0
+
+  const today = new Date()
+  const birthDate = new Date(dateOfBirth)
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+
+  return age
+}
+
+// Password strength calculation
+export function getPasswordStrength(password: string): PasswordStrength {
+  let score = 0
+  const feedback: string[] = []
+
+  if (password.length >= 8) score++
+  else feedback.push("8+ characters")
+
+  if (/[A-Z]/.test(password)) score++
+  else feedback.push("uppercase letter")
+
+  if (/[a-z]/.test(password)) score++
+  else feedback.push("lowercase letter")
+
+  if (/\d/.test(password)) score++
+  else feedback.push("number")
+
+  if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++
+  else feedback.push("special character")
+
+  return { score, feedback }
+}
+
+// Validate all fields at once
 export function validateAllFields(formData: Partial<SignupFormData>): ValidationErrors {
   const errors: ValidationErrors = {}
 
@@ -134,16 +145,6 @@ export function validateAllFields(formData: Partial<SignupFormData>): Validation
   if (formData.password !== undefined) {
     const passwordError = validatePassword(formData.password)
     if (passwordError) errors.password = passwordError
-  }
-
-  if (formData.firstName !== undefined) {
-    const firstNameError = validateFirstName(formData.firstName)
-    if (firstNameError) errors.firstName = firstNameError
-  }
-
-  if (formData.lastName !== undefined) {
-    const lastNameError = validateLastName(formData.lastName)
-    if (lastNameError) errors.lastName = lastNameError
   }
 
   if (formData.dateOfBirth !== undefined) {

@@ -8,12 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff, CheckCircle, XCircle, User, Mail, Lock, Calendar, Users, Database } from "lucide-react"
+import { Eye, EyeOff, CheckCircle, XCircle, Mail, Lock, Calendar, Users, Database } from "lucide-react"
 import {
   validateEmail,
   validatePassword,
-  validateFirstName,
-  validateLastName,
   validateDateOfBirth,
   validateSex,
   getPasswordStrength,
@@ -26,8 +24,6 @@ export function SignupForm() {
     password: "",
     dateOfBirth: "",
     sex: "",
-    firstName: "",
-    lastName: "",
   })
 
   const [errors, setErrors] = useState<ValidationErrors>({})
@@ -65,12 +61,6 @@ export function SignupForm() {
       case "password":
         error = validatePassword(formData.password)
         break
-      case "firstName":
-        error = validateFirstName(formData.firstName)
-        break
-      case "lastName":
-        error = validateLastName(formData.lastName)
-        break
       case "dateOfBirth":
         error = validateDateOfBirth(formData.dateOfBirth)
         break
@@ -99,12 +89,6 @@ export function SignupForm() {
       const passwordError = validatePassword(formData.password)
       if (passwordError) clientErrors.password = passwordError
 
-      const firstNameError = validateFirstName(formData.firstName)
-      if (firstNameError) clientErrors.firstName = firstNameError
-
-      const lastNameError = validateLastName(formData.lastName)
-      if (lastNameError) clientErrors.lastName = lastNameError
-
       const dobError = validateDateOfBirth(formData.dateOfBirth)
       if (dobError) clientErrors.dateOfBirth = dobError
 
@@ -128,8 +112,6 @@ export function SignupForm() {
           password: formData.password,
           dateOfBirth: formData.dateOfBirth,
           sex: formData.sex,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
         }),
       })
 
@@ -181,22 +163,13 @@ export function SignupForm() {
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="text-2xl font-bold text-green-600 mb-2">Account Created Successfully! 🎉</h3>
-            <p className="text-muted-foreground mb-4">
-              Welcome to TrustVerify,{" "}
-              <strong>
-                {successData?.firstName} {successData?.lastName}
-              </strong>
-              !
-            </p>
+            <p className="text-muted-foreground mb-4">Welcome to TrustVerify!</p>
             <div className="bg-muted p-4 rounded-lg mb-6 text-sm">
               <div className="flex items-center gap-2 mb-2">
                 <Database className="w-4 h-4 text-green-600" />
                 <span className="font-medium">Account Details Saved</span>
               </div>
               <div className="text-left space-y-1">
-                <p>
-                  <strong>Name:</strong> {successData?.firstName} {successData?.lastName}
-                </p>
                 <p>
                   <strong>Email:</strong> {successData?.email}
                 </p>
@@ -219,8 +192,6 @@ export function SignupForm() {
                     password: "",
                     dateOfBirth: "",
                     sex: "",
-                    firstName: "",
-                    lastName: "",
                   })
                   setErrors({})
                   setTouched({})
@@ -254,64 +225,6 @@ export function SignupForm() {
               </p>
             </div>
           )}
-
-          {/* First Name Field */}
-          <div className="space-y-2">
-            <Label htmlFor="firstName" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              First Name *
-            </Label>
-            <Input
-              id="firstName"
-              type="text"
-              placeholder="Enter your first name"
-              value={formData.firstName}
-              onChange={(e) => handleFieldChange("firstName", e.target.value)}
-              onBlur={() => handleBlur("firstName")}
-              className={errors.firstName ? "border-red-500 focus:border-red-500" : ""}
-            />
-            {errors.firstName && (
-              <p className="text-red-500 text-sm flex items-center gap-1">
-                <XCircle className="w-3 h-3" />
-                {errors.firstName}
-              </p>
-            )}
-            {!errors.firstName && formData.firstName && touched.firstName && (
-              <p className="text-green-500 text-sm flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                First name looks good
-              </p>
-            )}
-          </div>
-
-          {/* Last Name Field */}
-          <div className="space-y-2">
-            <Label htmlFor="lastName" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Last Name *
-            </Label>
-            <Input
-              id="lastName"
-              type="text"
-              placeholder="Enter your last name"
-              value={formData.lastName}
-              onChange={(e) => handleFieldChange("lastName", e.target.value)}
-              onBlur={() => handleBlur("lastName")}
-              className={errors.lastName ? "border-red-500 focus:border-red-500" : ""}
-            />
-            {errors.lastName && (
-              <p className="text-red-500 text-sm flex items-center gap-1">
-                <XCircle className="w-3 h-3" />
-                {errors.lastName}
-              </p>
-            )}
-            {!errors.lastName && formData.lastName && touched.lastName && (
-              <p className="text-green-500 text-sm flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                Last name looks good
-              </p>
-            )}
-          </div>
 
           {/* Email Field */}
           <div className="space-y-2">
