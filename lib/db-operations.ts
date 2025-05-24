@@ -9,12 +9,14 @@ export interface UserData {
 }
 
 export interface DatabaseUser {
+  userid: number // Added numeric user ID
   email_id: string
   password: string
   date_of_birth: string
   created_at: Date
   updated_at: Date
   sex: string
+  age: number
 }
 
 // Check if email already exists
@@ -30,8 +32,10 @@ export async function checkEmailExists(email: string): Promise<boolean> {
   }
 }
 
-// Insert new user into database
-export async function createUser(userData: UserData): Promise<{ success: boolean; message: string; userId?: string }> {
+// Insert new user into database with auto-generated userid
+export async function createUser(
+  userData: UserData,
+): Promise<{ success: boolean; message: string; userId?: string; numericUserId?: number }> {
   try {
     // Check if email already exists
     const emailExists = await checkEmailExists(userData.email)
@@ -45,7 +49,7 @@ export async function createUser(userData: UserData): Promise<{ success: boolean
     // Calculate age from date of birth
     const age = calculateAge(userData.dateOfBirth)
 
-    // Insert user into database
+    // Insert user into database - userid will be auto-generated
     const result = await sql`
       INSERT INTO user_details (
         email_id, 
@@ -64,7 +68,7 @@ export async function createUser(userData: UserData): Promise<{ success: boolean
         NOW(),
         NOW()
       )
-      RETURNING email_id
+      RETURNING email_id, userid
     `
 
     if (result.length > 0) {
@@ -72,6 +76,7 @@ export async function createUser(userData: UserData): Promise<{ success: boolean
         success: true,
         message: "User created successfully",
         userId: result[0].email_id,
+        numericUserId: result[0].userid, // Return the auto-generated numeric ID
       }
     } else {
       return { success: false, message: "Failed to create user" }
@@ -79,6 +84,59 @@ export async function createUser(userData: UserData): Promise<{ success: boolean
   } catch (error) {
     console.error("Error creating user:", error)
     return { success: false, message: "Database error occurred while creating user" }
+  }
+}
+
+// Get user by email (updated to include userid)
+export async function getUserByEmail(email: string): Promise<DatabaseUser | null> {
+  try {
+    const result = await sql`
+      SELECT userid, email_id, password, date_of_birth, created_at, updated_at, sex, age 
+      FROM user_details 
+      WHERE email_id = ${email}
+    `
+
+    if (result.length > 0) {
+      return result[0] as DatabaseUser
+    }
+
+    return null
+  } catch (error) {
+    console.error("Error getting user by email:", error)
+    throw new Error("Failed to retrieve user")
+  }
+}
+
+// Get user by numeric userid
+export async function getUserByNumericId(userid: number): Promise<DatabaseUser | null> {
+  try {
+    const result = await sql`
+      SELECT userid, email_id, password, date_of_birth, created_at, updated_at, sex, age 
+      FROM user_details 
+      WHERE userid = ${userid}
+    `
+
+    if (result.length > 0) {
+      return result[0] as DatabaseUser
+    }
+
+    return null
+  } catch (error) {
+    console.error("Error getting user by numeric ID:", error)
+    throw new Error("Failed to retrieve user")
+  }
+}
+
+// Get next available userid (for reference/debugging)
+export async function getNextUserId(): Promise<number> {
+  try {
+    const result = await sql`
+      SELECT COALESCE(MAX(userid), 0) + 1 as next_id FROM user_details
+    `
+    return result[0].next_id
+  } catch (error) {
+    console.error("Error getting next user ID:", error)
+    return 1
   }
 }
 
@@ -96,24 +154,6 @@ function calculateAge(dateOfBirth: string): number {
   }
 
   return age
-}
-
-// Get user by email
-export async function getUserByEmail(email: string): Promise<DatabaseUser | null> {
-  try {
-    const result = await sql`
-      SELECT * FROM user_details WHERE email_id = ${email}
-    `
-
-    if (result.length > 0) {
-      return result[0] as DatabaseUser
-    }
-
-    return null
-  } catch (error) {
-    console.error("Error getting user by email:", error)
-    throw new Error("Failed to retrieve user")
-  }
 }
 
 // Get user by username (keeping for compatibility)

@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       // Calculate age for response
       const age = calculateAge(sanitizedData.dateOfBirth)
 
-      // Success response
+      // Success response with both email ID and numeric user ID
       return Response.json(
         {
           success: true,
@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
             age: age,
             sex: userData.sex,
             dateOfBirth: userData.dateOfBirth,
-            userId: result.userId,
+            userId: result.userId, // Email-based ID
+            numericUserId: result.numericUserId, // Auto-generated numeric ID
           },
           router: "App Router",
         },
