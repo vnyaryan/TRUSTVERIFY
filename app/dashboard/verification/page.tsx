@@ -1,9 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { CheckCircle, Clock, AlertTriangle } from "lucide-react"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { ErrorDisplay } from "@/components/ui/error-display"
+import { CheckCircle, Clock, AlertTriangle, RefreshCw, Shield } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useToast } from "@/hooks/use-toast"
 import {
   getCurrentUserVerificationData,
   getDefaultVerificationData,
@@ -15,36 +20,78 @@ export default function VerificationPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
+  const { toast } = useToast()
 
   /**
-   * Loads verification data with error handling and retry logic
+   * Loads verification data with enhanced error handling and user feedback
    */
-  const loadVerificationData = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
+  const loadVerificationData = useCallback(
+    async (showRefreshFeedback = false) => {
+      try {
+        if (showRefreshFeedback) {
+          setRefreshing(true)
+        } else {
+          setLoading(true)
+        }
+        setError(null)
 
-      const result = await getCurrentUserVerificationData()
+        const result = await getCurrentUserVerificationData()
 
-      if (result.success && result.data) {
-        setVerificationData(result.data)
-      } else {
-        // Use default data as fallback
+        if (result.success && result.data) {
+          setVerificationData(result.data)
+
+          if (showRefreshFeedback) {
+            toast({
+              title: "Verification data updated",
+              description: "Your verification status has been refreshed.",
+            })
+          }
+        } else {
+          // Use default data as fallback
+          setVerificationData(getDefaultVerificationData())
+
+          if (result.error && !result.error.includes("not found")) {
+            setError(result.error)
+
+            if (showRefreshFeedback) {
+              toast({
+                title: "Update failed",
+                description: "Using cached verification data.",
+                variant: "destructive",
+              })
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load verification data:", err)
+        setError("Unexpected error occurred")
         setVerificationData(getDefaultVerificationData())
 
-        // Only show error if it's not just missing data
-        if (result.error && !result.error.includes("not found")) {
-          setError(result.error)
+        if (showRefreshFeedback) {
+          toast({
+            title: "Connection error",
+            description: "Please check your internet connection and try again.",
+            variant: "destructive",
+          })
         }
+      } finally {
+        setLoading(false)
+        setRefreshing(false)
       }
-    } catch (err) {
-      console.error("Failed to load verification data:", err)
-      setError("Unexpected error occurred")
-      setVerificationData(getDefaultVerificationData())
-    } finally {
-      setLoading(false)
+    },
+    [toast],
+  )
+
+  /**
+   * Handle manual refresh with user feedback
+   */
+  const handleRefresh = useCallback(() => {
+    if (!refreshing) {
+      setRetryCount(0)
+      loadVerificationData(true)
     }
-  }, [])
+  }, [loadVerificationData, refreshing])
 
   /**
    * Retry function with exponential backoff
@@ -53,67 +100,67 @@ export default function VerificationPage() {
     if (retryCount < 3) {
       setRetryCount((prev) => prev + 1)
       const delay = Math.pow(2, retryCount) * 1000
-      setTimeout(loadVerificationData, delay)
+      setTimeout(() => loadVerificationData(), delay)
     }
   }, [loadVerificationData, retryCount])
 
   /**
-   * Get appropriate icon for verification status
+   * Get verification status configuration
    */
-  const getStatusIcon = (item: VerificationItem) => {
-    if (item.status === "VERIFIED") {
-      return <CheckCircle className="h-6 w-6 text-green-600" />
-    } else if (item.status === "PENDING") {
-      return <Clock className="h-6 w-6 text-yellow-600" />
-    } else if (item.status === "REJECTED") {
-      return <AlertTriangle className="h-6 w-6 text-red-600" />
-    } else {
-      return <Clock className="h-6 w-6 text-gray-400" />
+  const getStatusConfig = (item: VerificationItem) => {
+    const configs = {
+      VERIFIED: {
+        icon: CheckCircle,
+        color: "text-green-600",
+        bgColor: "bg-green-50",
+        borderColor: "border-green-200",
+        badgeVariant: "default" as const,
+        badgeClass: "bg-green-100 text-green-800 hover:bg-green-100",
+      },
+      PENDING: {
+        icon: Clock,
+        color: "text-amber-600",
+        bgColor: "bg-amber-50",
+        borderColor: "border-amber-200",
+        badgeVariant: "secondary" as const,
+        badgeClass: "bg-amber-100 text-amber-800 hover:bg-amber-100",
+      },
+      REJECTED: {
+        icon: AlertTriangle,
+        color: "text-red-600",
+        bgColor: "bg-red-50",
+        borderColor: "border-red-200",
+        badgeVariant: "destructive" as const,
+        badgeClass: "bg-red-100 text-red-800 hover:bg-red-100",
+      },
+      NOT_VERIFIED: {
+        icon: Clock,
+        color: "text-gray-500",
+        bgColor: "bg-gray-50",
+        borderColor: "border-gray-200",
+        badgeVariant: "outline" as const,
+        badgeClass: "bg-gray-100 text-gray-600 hover:bg-gray-100",
+      },
     }
+
+    return configs[item.status as keyof typeof configs] || configs.NOT_VERIFIED
   }
 
   /**
-   * Get status color classes
-   */
-  const getStatusColor = (item: VerificationItem) => {
-    if (item.status === "VERIFIED") {
-      return "text-green-600 font-semibold"
-    } else if (item.status === "PENDING") {
-      return "text-yellow-600 font-semibold"
-    } else if (item.status === "REJECTED") {
-      return "text-red-600 font-semibold"
-    } else {
-      return "text-gray-500 font-semibold"
-    }
-  }
-
-  /**
-   * Get background color for cards
-   */
-  const getCardBackground = (item: VerificationItem) => {
-    if (item.status === "VERIFIED") {
-      return "bg-green-50 border-green-200"
-    } else if (item.status === "PENDING") {
-      return "bg-yellow-50 border-yellow-200"
-    } else if (item.status === "REJECTED") {
-      return "bg-red-50 border-red-200"
-    } else {
-      return "bg-gray-50 border-gray-200"
-    }
-  }
-
-  /**
-   * Calculate verification progress
+   * Calculate verification progress with enhanced metrics
    */
   const getVerificationProgress = () => {
     const verifiedCount = verificationData.filter((item) => item.isVerified).length
+    const pendingCount = verificationData.filter((item) => item.status === "PENDING").length
     const totalCount = verificationData.length
     const percentage = totalCount > 0 ? (verifiedCount / totalCount) * 100 : 0
 
     return {
       verified: verifiedCount,
+      pending: pendingCount,
       total: totalCount,
       percentage: Math.round(percentage),
+      isComplete: verifiedCount === totalCount,
     }
   }
 
@@ -122,85 +169,193 @@ export default function VerificationPage() {
     loadVerificationData()
   }, [loadVerificationData])
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex flex-col gap-6 p-6 max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Verification</h1>
-        <LoadingSpinner size="lg" text="Loading verification data..." />
-      </div>
-    )
-  }
-
-  // Error state (only for critical errors, not missing data)
-  if (error && verificationData.length === 0) {
-    return (
-      <div className="flex flex-col gap-6 p-6 max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Verification</h1>
-        <ErrorDisplay
-          title="Failed to Load Verification Data"
-          message={error}
-          onRetry={retryCount < 3 ? handleRetry : undefined}
-          showRetry={retryCount < 3}
-        />
-      </div>
-    )
-  }
-
   const progress = getVerificationProgress()
 
+  // Loading skeleton
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-9 w-48" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-24" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-3 w-full" />
+            </CardContent>
+          </Card>
+
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-6 w-6 rounded-full" />
+                      <Skeleton className="h-6 w-32" />
+                    </div>
+                    <Skeleton className="h-6 w-20" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Critical error state
+  if (error && verificationData.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold tracking-tight">Verification</h1>
+          </div>
+
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Failed to load verification data: {error}</span>
+              {retryCount < 3 && (
+                <Button variant="outline" size="sm" onClick={handleRetry} className="ml-4">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-2xl mx-auto">
-      {/* Page Title */}
-      <h1 className="text-3xl font-bold tracking-tight text-gray-900">Verification</h1>
+    <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="space-y-6">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Verification</h1>
+            <p className="text-muted-foreground">Manage your document verification status</p>
+          </div>
 
-      {/* Verification Status Summary Card */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-gray-700">Verification Status</span>
-          <span className="text-sm text-gray-500">
-            {progress.verified} of {progress.total} verified
-          </span>
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing} className="self-start sm:self-auto">
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Updating..." : "Refresh"}
+          </Button>
         </div>
 
-        {/* Progress Bar */}
-        <div className="w-full bg-gray-200 rounded-full h-3">
-          <div
-            className="bg-green-500 h-3 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${progress.percentage}%` }}
-          />
-        </div>
-      </div>
+        {/* Progress Overview Card */}
+        <Card className="border-2">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-lg font-semibold">Verification Status</CardTitle>
+                <CardDescription>
+                  {progress.verified} of {progress.total} documents verified
+                  {progress.pending > 0 && ` • ${progress.pending} pending`}
+                </CardDescription>
+              </div>
 
-      {/* Verification Cards */}
-      <div className="space-y-4">
-        {verificationData.map((item, index) => (
-          <div
-            key={`${item.document}-${index}`}
-            className={`
-              border rounded-lg p-6 transition-all duration-200 hover:shadow-md
-              ${getCardBackground(item)}
-              flex items-center justify-between
-            `}
-          >
-            <div className="flex items-center gap-4">
-              {getStatusIcon(item)}
-              <span className="text-lg font-medium text-gray-900">{item.document}</span>
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-muted-foreground" />
+                <Badge
+                  variant={progress.isComplete ? "default" : "secondary"}
+                  className={progress.isComplete ? "bg-green-100 text-green-800" : ""}
+                >
+                  {progress.percentage}% Complete
+                </Badge>
+              </div>
             </div>
+          </CardHeader>
 
-            <span className={`text-lg ${getStatusColor(item)}`}>{item.status}</span>
-          </div>
-        ))}
-      </div>
+          <CardContent className="pt-0">
+            <div className="space-y-2">
+              <Progress
+                value={progress.percentage}
+                className="h-3"
+                aria-label={`Verification progress: ${progress.percentage}% complete`}
+              />
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Progress</span>
+                <span>
+                  {progress.verified}/{progress.total} verified
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Subtle Error Indicator (if using fallback data) */}
-      {error && (
-        <div className="text-center">
-          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
-            Using default verification data
-          </div>
+        {/* Verification Cards */}
+        <div className="space-y-4">
+          {verificationData.map((item, index) => {
+            const config = getStatusConfig(item)
+            const IconComponent = config.icon
+
+            return (
+              <Card
+                key={`${item.document}-${index}`}
+                className={`
+                  transition-all duration-200 hover:shadow-md border-2
+                  ${config.borderColor} ${config.bgColor}
+                `}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-full ${config.bgColor}`}>
+                        <IconComponent className={`h-5 w-5 ${config.color}`} aria-hidden="true" />
+                      </div>
+
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-lg text-foreground">{item.document}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {item.status === "VERIFIED" && "Document successfully verified"}
+                          {item.status === "PENDING" && "Verification in progress"}
+                          {item.status === "REJECTED" && "Verification failed"}
+                          {item.status === "NOT_VERIFIED" && "Verification required"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Badge variant={config.badgeVariant} className={`${config.badgeClass} font-semibold px-3 py-1`}>
+                      {item.status.replace("_", " ")}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
-      )}
+
+        {/* Fallback Data Warning */}
+        {error && (
+          <Alert className="border-amber-200 bg-amber-50">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800">
+              <strong>Note:</strong> Displaying cached verification data. Some information may not be up to date.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Completion Message */}
+        {progress.isComplete && (
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              <strong>Congratulations!</strong> All your documents have been verified successfully.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
     </div>
   )
 }
