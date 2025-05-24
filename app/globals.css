@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Deep Navy Blue as Primary - matched to the shield in the image */
+    --primary: 215 65% 30%;
+    --primary-rgb: 31, 59, 122;
+    --primary-foreground: 210 40% 98%;
+    --primary-50: 215 100% 97%;
+    --primary-100: 215 95% 94%;
+    --primary-200: 215 90% 88%;
+    --primary-300: 215 85% 75%;
+    --primary-400: 215 80% 60%;
+    --primary-500: 215 75% 45%;
+    --primary-600: 215 70% 30%;
+    --primary-700: 215 75% 25%;
+    --primary-800: 215 80% 20%;
+    --primary-900: 215 85% 15%;
+    --primary-950: 215 90% 10%;
+
+    /* Coral/Salmon as Secondary - matched to the woman's top in the image */
+    --secondary: 5 70% 65%;
+    --secondary-foreground: 10 10% 10%;
+    --secondary-50: 5 100% 97%;
+    --secondary-100: 5 95% 94%;
+    --secondary-200: 5 90% 88%;
+    --secondary-300: 5 85% 80%;
+    --secondary-400: 5 80% 70%;
+    --secondary-500: 5 75% 65%;
+    --secondary-600: 5 70% 60%;
+    --secondary-700: 5 75% 50%;
+    --secondary-800: 5 80% 40%;
+    --secondary-900: 5 85% 30%;
+    --secondary-950: 5 90% 20%;
+
+    /* Refined Neutral Colors */
+    --background: 210 20% 99%;
+    --foreground: 215 15% 15%;
+
+    --card: 210 25% 98%;
+    --card-foreground: 215 15% 15%;
+
+    --popover: 210 25% 98%;
+    --popover-foreground: 215 15% 15%;
+
+    --muted: 210 15% 95%;
+    --muted-foreground: 215 10% 40%;
+
+    --accent: 210 15% 95%;
+    --accent-foreground: 215 15% 15%;
+
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 210 15% 90%;
+    --input: 210 15% 90%;
+    --ring: 215 70% 30%;
+
+    /* Sidebar Colors */
+    --sidebar: 215 15% 15%;
+    --sidebar-foreground: 210 15% 95%;
+    --sidebar-border: 215 20% 25%;
+    --sidebar-accent: 215 25% 25%;
+    --sidebar-accent-foreground: 210 15% 95%;
+    --sidebar-ring: 215 70% 50%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Deep Navy Blue as Primary (adjusted for dark mode) */
+    --primary: 215 70% 60%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Coral/Salmon as Secondary (adjusted for dark mode) */
+    --secondary: 5 85% 65%;
+    --secondary-foreground: 10 10% 10%;
+
+    /* Dark Mode Neutral Colors */
+    --background: 215 25% 10%;
+    --foreground: 210 15% 95%;
+
+    --card: 215 30% 12%;
+    --card-foreground: 210 15% 95%;
+
+    --popover: 215 30% 12%;
+    --popover-foreground: 210 15% 95%;
+
+    --muted: 215 20% 20%;
+    --muted-foreground: 210 10% 70%;
+
+    --accent: 215 20% 20%;
+    --accent-foreground: 210 15% 95%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 20% 20%;
+    --input: 215 20% 20%;
+    --ring: 215 70% 60%;
+
+    /* Sidebar Colors for Dark Mode */
+    --sidebar: 215 30% 15%;
+    --sidebar-foreground: 210 15% 95%;
+    --sidebar-border: 215 20% 25%;
+    --sidebar-accent: 215 25% 30%;
+    --sidebar-accent-foreground: 210 15% 95%;
+    --sidebar-ring: 215 70% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display tracking-tight;
+  }
+  h1 {
+    @apply text-4xl font-bold md:text-5xl lg:text-6xl;
+  }
+  h2 {
+    @apply text-3xl font-bold md:text-4xl;
+  }
+  h3 {
+    @apply text-2xl font-bold md:text-3xl;
+  }
+  h4 {
+    @apply text-xl font-semibold md:text-2xl;
+  }
+  h5 {
+    @apply text-lg font-semibold md:text-xl;
+  }
+  h6 {
+    @apply text-base font-semibold md:text-lg;
+  }
+}
+
+@layer components {
+  .premium-card {
+    @apply bg-card rounded-xl border border-border/40 shadow-premium-md transition-all duration-300 hover:shadow-premium-lg;
+  }
+
+  .premium-button {
+    @apply bg-gradient-premium text-primary-foreground shadow-premium-sm hover:shadow-premium-md transition-all duration-300;
+  }
+
+  .premium-input {
+    @apply bg-background border-input rounded-lg shadow-premium-inner focus-within:shadow-premium-highlight transition-all duration-200;
+  }
+
+  .premium-gradient-text {
+    @apply bg-gradient-premium bg-clip-text text-transparent;
+  }
+
+  .premium-section {
+    @apply py-16 md:py-24 lg:py-32;
+  }
+}
