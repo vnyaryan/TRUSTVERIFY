@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff, CheckCircle, XCircle, User, Mail, Lock, Calendar, Users } from "lucide-react"
+import { Eye, EyeOff, CheckCircle, XCircle, User, Mail, Lock, Calendar, Users, Database } from "lucide-react"
 import {
   validateEmail,
   validatePassword,
@@ -17,7 +17,6 @@ import {
   validateSex,
   calculateAge,
   getPasswordStrength,
-  validateAllFields,
 } from "@/lib/form-validation"
 import type { SignupFormData, ValidationErrors } from "@/types/signup"
 
@@ -36,6 +35,8 @@ export function SignupForm() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({})
+  const [submitError, setSubmitError] = useState<string>("")
+  const [successData, setSuccessData] = useState<any>(null)
 
   // Calculate age whenever date of birth changes
   useEffect(() => {
@@ -51,6 +52,11 @@ export function SignupForm() {
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }))
+    }
+
+    // Clear submit error when user makes changes
+    if (submitError) {
+      setSubmitError("")
     }
   }
 
@@ -86,22 +92,70 @@ export function SignupForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setSubmitError("")
 
-    // Validate all fields
-    const validationErrors = validateAllFields(formData)
+    try {
+      // Client-side validation first
+      const clientErrors: ValidationErrors = {}
 
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors)
+      const emailError = validateEmail(formData.email)
+      if (emailError) clientErrors.email = emailError
+
+      const passwordError = validatePassword(formData.password)
+      if (passwordError) clientErrors.password = passwordError
+
+      const usernameError = validateUsername(formData.username)
+      if (usernameError) clientErrors.username = usernameError
+
+      const dobError = validateDateOfBirth(formData.dateOfBirth)
+      if (dobError) clientErrors.dateOfBirth = dobError
+
+      const sexError = validateSex(formData.sex)
+      if (sexError) clientErrors.sex = sexError
+
+      if (Object.keys(clientErrors).length > 0) {
+        setErrors(clientErrors)
+        setIsSubmitting(false)
+        return
+      }
+
+      // Submit to API
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          dateOfBirth: formData.dateOfBirth,
+          sex: formData.sex,
+          username: formData.username,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        // Success - show success message
+        setSuccessData(result.data)
+        setIsSuccess(true)
+      } else {
+        // Handle API errors
+        if (result.errors) {
+          // Validation errors from server
+          setErrors(result.errors)
+        } else {
+          // General error message
+          setSubmitError(result.message || "An error occurred during signup")
+        }
+      }
+    } catch (error) {
+      console.error("Signup error:", error)
+      setSubmitError("Network error. Please check your connection and try again.")
+    } finally {
       setIsSubmitting(false)
-      return
     }
-
-    // Simulate form submission delay
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    // Show success message
-    setIsSuccess(true)
-    setIsSubmitting(false)
   }
 
   const passwordStrength = getPasswordStrength(formData.password)
@@ -128,10 +182,26 @@ export function SignupForm() {
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="text-2xl font-bold text-green-600 mb-2">Account Created Successfully! 🎉</h3>
-            <p className="text-muted-foreground mb-6">
-              Welcome to TrustVerify! Your account has been created and you can now start building trust in your
-              relationships.
+            <p className="text-muted-foreground mb-4">
+              Welcome to TrustVerify, <strong>{successData?.username}</strong>!
             </p>
+            <div className="bg-muted p-4 rounded-lg mb-6 text-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <Database className="w-4 h-4 text-green-600" />
+                <span className="font-medium">Account Details Saved</span>
+              </div>
+              <div className="text-left space-y-1">
+                <p>
+                  <strong>Email:</strong> {successData?.email}
+                </p>
+                <p>
+                  <strong>Username:</strong> {successData?.username}
+                </p>
+                <p>
+                  <strong>Age:</strong> {successData?.age} years old
+                </p>
+              </div>
+            </div>
             <div className="space-y-3">
               <Button onClick={() => (window.location.href = "/login")} className="w-full">
                 Go to Login
@@ -140,6 +210,7 @@ export function SignupForm() {
                 variant="outline"
                 onClick={() => {
                   setIsSuccess(false)
+                  setSuccessData(null)
                   setFormData({
                     email: "",
                     password: "",
@@ -150,6 +221,7 @@ export function SignupForm() {
                   })
                   setErrors({})
                   setTouched({})
+                  setSubmitError("")
                 }}
                 className="w-full"
               >
@@ -166,10 +238,20 @@ export function SignupForm() {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold">Create Your Account</CardTitle>
-        <p className="text-muted-foreground">Join TrustVerify to build trust in your relationships</p>
+        <p className="text-muted-foreground">Join TrustVerify and save your details securely</p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Submit Error Display */}
+          {submitError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-red-600 text-sm flex items-center gap-2">
+                <XCircle className="w-4 h-4" />
+                {submitError}
+              </p>
+            </div>
+          )}
+
           {/* Email Field */}
           <div className="space-y-2">
             <Label htmlFor="email" className="flex items-center gap-2">
@@ -280,7 +362,7 @@ export function SignupForm() {
             {!errors.username && formData.username && touched.username && (
               <p className="text-green-500 text-sm flex items-center gap-1">
                 <CheckCircle className="w-3 h-3" />
-                Username is available
+                Username looks good
               </p>
             )}
           </div>
@@ -355,10 +437,13 @@ export function SignupForm() {
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Creating Account...
+                Saving to Database...
               </span>
             ) : (
-              "Create Account"
+              <span className="flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                Create Account
+              </span>
             )}
           </Button>
 
