@@ -4,7 +4,7 @@ import type React from "react"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, UserCircle, FileCheck, Shield } from "lucide-react"
+import { UserCircle, FileCheck, Shield } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface NavItem {
@@ -17,11 +17,6 @@ export function DashboardNav() {
   const pathname = usePathname()
 
   const navItems: NavItem[] = [
-    {
-      title: "Overview",
-      href: "/dashboard",
-      icon: <LayoutDashboard className="mr-2 h-4 w-4" />,
-    },
     {
       title: "My Profile",
       href: "/dashboard/profile",
