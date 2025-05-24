@@ -44,12 +44,14 @@ export async function POST(request: NextRequest) {
       return age
     }
 
-    // Prepare complete user data for frontend
+    // Prepare complete user data for frontend including numeric user ID
     const userData = {
       email: user.email_id,
       dateOfBirth: user.date_of_birth,
       sex: user.sex,
       age: calculateAge(user.date_of_birth),
+      userId: user.userid, // Include the numeric user ID
+      numericUserId: user.userid, // Alternative field name for clarity
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     }

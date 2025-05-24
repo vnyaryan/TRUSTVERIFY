@@ -14,25 +14,26 @@ export interface VerificationItem {
 }
 
 /**
- * Sanitizes username to prevent path traversal attacks
- * @param username - Raw username input
- * @returns Sanitized username or null if invalid
+ * Sanitizes user ID to prevent path traversal attacks
+ * @param userId - Numeric user ID
+ * @returns Sanitized user ID or null if invalid
  */
-function sanitizeUsername(username: string): string | null {
-  // Remove any path traversal attempts and special characters
-  const sanitized = username.replace(/[^a-zA-Z0-9_-]/g, "")
+function sanitizeUserId(userId: number | string): string | null {
+  // Convert to string and validate it's a positive integer
+  const userIdStr = String(userId)
 
-  // Validate length and format
-  if (sanitized.length < 1 || sanitized.length > 50) {
+  // Check if it's a valid positive integer
+  if (!/^\d+$/.test(userIdStr) || Number.parseInt(userIdStr) <= 0) {
     return null
   }
 
-  // Ensure it doesn't start with dots or contain only dots
-  if (sanitized.startsWith(".") || sanitized === "." || sanitized === "..") {
+  // Additional safety check for reasonable range (1 to 999999)
+  const numericId = Number.parseInt(userIdStr)
+  if (numericId < 1 || numericId > 999999) {
     return null
   }
 
-  return sanitized
+  return userIdStr
 }
 
 /**
@@ -84,27 +85,27 @@ function getDisplayName(fieldName: string): string {
 }
 
 /**
- * Fetches verification data from JSON file
- * @param username - User identifier
+ * Fetches verification data from JSON file using user ID
+ * @param userId - Numeric user ID
  * @returns Promise with verification data or error
  */
-export async function fetchVerificationData(username: string): Promise<{
+export async function fetchVerificationData(userId: number | string): Promise<{
   success: boolean
   data?: VerificationItem[]
   error?: string
 }> {
   try {
-    // Sanitize username for security
-    const sanitizedUsername = sanitizeUsername(username)
-    if (!sanitizedUsername) {
+    // Sanitize user ID for security
+    const sanitizedUserId = sanitizeUserId(userId)
+    if (!sanitizedUserId) {
       return {
         success: false,
-        error: "Invalid username format",
+        error: "Invalid user ID format",
       }
     }
 
-    // Construct file path
-    const filePath = `/data/${sanitizedUsername}.json`
+    // Construct file path using user ID
+    const filePath = `/data/${sanitizedUserId}.json`
 
     // Fetch with timeout for performance
     const controller = new AbortController()
@@ -195,7 +196,7 @@ export async function fetchVerificationData(username: string): Promise<{
 }
 
 /**
- * Gets current user's verification data
+ * Gets current user's verification data using their numeric user ID
  * @returns Promise with verification data
  */
 export async function getCurrentUserVerificationData(): Promise<{
@@ -205,14 +206,24 @@ export async function getCurrentUserVerificationData(): Promise<{
 }> {
   const user = getCurrentUser()
 
-  if (!user || !user.username) {
+  if (!user) {
     return {
       success: false,
       error: "User not authenticated",
     }
   }
 
-  return fetchVerificationData(user.username)
+  // Try to get user ID from user object
+  const userId = user.userId || user.numericUserId || user.id
+
+  if (!userId) {
+    return {
+      success: false,
+      error: "User ID not found in session",
+    }
+  }
+
+  return fetchVerificationData(userId)
 }
 
 /**
