@@ -16,6 +16,7 @@ export default function ProfilePage() {
     const fetchUserData = () => {
       try {
         const userData = getCurrentUser()
+        console.log("Raw user data from localStorage:", userData) // Debug log
 
         if (userData) {
           setUser(userData)
@@ -96,8 +97,18 @@ export default function ProfilePage() {
     )
   }
 
-  const userAge = calculateAge(user?.dateOfBirth || user?.date_of_birth)
-  const formattedDate = formatDate(user?.dateOfBirth || user?.date_of_birth)
+  // Debug: Check all possible date field variations
+  const dateOfBirth = user?.dateOfBirth || user?.date_of_birth || user?.dob || user?.birthDate
+  console.log("Date of birth variations:", {
+    dateOfBirth: user?.dateOfBirth,
+    date_of_birth: user?.date_of_birth,
+    dob: user?.dob,
+    birthDate: user?.birthDate,
+    finalValue: dateOfBirth,
+  })
+
+  const userAge = calculateAge(dateOfBirth)
+  const formattedDate = formatDate(dateOfBirth)
 
   return (
     <div className="flex flex-col gap-4">
@@ -120,15 +131,24 @@ export default function ProfilePage() {
               <CardDescription>Your registered account information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Debug Information - Remove in production */}
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+                <p className="text-xs font-mono text-yellow-800 dark:text-yellow-200">
+                  Debug: User object keys: {Object.keys(user || {}).join(", ")}
+                </p>
+                <p className="text-xs font-mono text-yellow-800 dark:text-yellow-200 mt-1">
+                  DOB value: {JSON.stringify(dateOfBirth)}
+                </p>
+              </div>
+
               {/* Email Address */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
+                <Label className="flex items-center gap-2 text-sm font-medium">
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   Email Address
                 </Label>
                 <div className="p-3 bg-muted/30 rounded-md border">
                   <p className="text-sm font-medium">{user?.email || "Not provided"}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Your registered email address</p>
                 </div>
               </div>
 
@@ -140,7 +160,6 @@ export default function ProfilePage() {
                 </Label>
                 <div className="p-3 bg-muted/30 rounded-md border">
                   <p className="text-sm font-medium">{formattedDate || "Not provided"}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Your registered date of birth</p>
                 </div>
               </div>
 
@@ -153,7 +172,6 @@ export default function ProfilePage() {
                   </Label>
                   <div className="p-3 bg-muted/30 rounded-md border">
                     <p className="text-sm font-medium">{userAge} years old</p>
-                    <p className="text-xs text-muted-foreground mt-1">Calculated from your date of birth</p>
                   </div>
                 </div>
               )}
@@ -166,23 +184,6 @@ export default function ProfilePage() {
                 </Label>
                 <div className="p-3 bg-muted/30 rounded-md border">
                   <p className="text-sm font-medium capitalize">{user?.gender || user?.sex || "Not specified"}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Your registered gender</p>
-                </div>
-              </div>
-
-              {/* Information Notice */}
-              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Profile Information</p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      This information was provided during account registration and cannot be modified for security and
-                      verification purposes.
-                    </p>
-                  </div>
                 </div>
               </div>
             </CardContent>
