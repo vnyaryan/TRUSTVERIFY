@@ -8,22 +8,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-    domains: ['blob.v0.dev', 'localhost', 'vercel.app'],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-        port: '',
-        pathname: '/**',
-      },
-    ],
   },
-  // Disable CSS optimization that requires critters
-  optimizeCss: false,
-  experimental: {
-    // Remove optimizeCss which requires critters
-    optimizeServerReact: true,
-  },
-};
+}
 
-export default nextConfig;
+export default nextConfig
