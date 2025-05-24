@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Upload, Save, Shield } from "lucide-react"
+import { Upload, Save, Shield, Calendar, Mail, Users } from "lucide-react"
 import { ResponsiveImage } from "@/components/ui/responsive-image"
 import { getCurrentUser } from "@/lib/auth"
 
@@ -53,6 +53,22 @@ export default function ProfilePage() {
     }, 2000)
   }
 
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth: string) => {
+    if (!dateOfBirth) return null
+
+    const today = new Date()
+    const birthDate = new Date(dateOfBirth)
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+
+    return age
+  }
+
   // Show loading state while fetching user data
   if (loading) {
     return (
@@ -87,6 +103,8 @@ export default function ProfilePage() {
     )
   }
 
+  const userAge = calculateAge(user?.dateOfBirth || user?.date_of_birth)
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -110,13 +128,14 @@ export default function ProfilePage() {
           <Card>
             <CardHeader>
               <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your personal details and information</CardDescription>
+              <CardDescription>View and update your personal details</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* Profile Picture Section */}
               <div className="flex flex-col md:flex-row gap-4 items-center">
                 <div className="relative h-24 w-24">
                   <ResponsiveImage
-                    src="/abstract-geometric-shapes.png"
+                    src="/abstract-user-avatar.png"
                     alt="Profile"
                     fill
                     className="rounded-full object-cover"
@@ -125,111 +144,129 @@ export default function ProfilePage() {
                   <div className="absolute -bottom-2 -right-2">
                     <label
                       htmlFor="profile-upload"
-                      className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                      className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
                     >
                       <Upload className="h-4 w-4" />
                       <span className="sr-only">Upload profile picture</span>
-                      <Input id="profile-upload" type="file" className="hidden" />
+                      <Input id="profile-upload" type="file" className="hidden" accept="image/*" />
                     </label>
                   </div>
                 </div>
                 <div className="space-y-1 text-center md:text-left">
-                  <h3 className="font-semibold">{user?.username || user?.email || "User"}</h3>
+                  <h3 className="font-semibold text-lg">{user?.email || "User"}</h3>
                   <p className="text-sm text-muted-foreground">Update your profile picture</p>
+                  {userAge && <p className="text-sm text-muted-foreground">{userAge} years old</p>}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Account Information */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                  Account Information
+                </h4>
+
                 <div className="space-y-2">
-                  <Label htmlFor="first-name">First name</Label>
+                  <Label htmlFor="email" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Email Address
+                  </Label>
                   <Input
-                    id="first-name"
-                    defaultValue={user?.firstName || user?.first_name || ""}
-                    placeholder="Enter your first name"
+                    id="email"
+                    type="email"
+                    defaultValue={user?.email || ""}
+                    placeholder="Enter your email"
+                    className="bg-muted/50"
+                    readOnly
                   />
+                  <p className="text-xs text-muted-foreground">Email cannot be changed after registration</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="last-name">Last name</Label>
-                  <Input
-                    id="last-name"
-                    defaultValue={user?.lastName || user?.last_name || ""}
-                    placeholder="Enter your last name"
-                  />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dob" className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Date of Birth
+                    </Label>
+                    <Input
+                      id="dob"
+                      type="date"
+                      defaultValue={user?.dateOfBirth || user?.date_of_birth || ""}
+                      className="bg-muted/50"
+                      readOnly
+                    />
+                    <p className="text-xs text-muted-foreground">Date of birth cannot be changed</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="gender" className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Gender
+                    </Label>
+                    <Select defaultValue={user?.gender || user?.sex || "male"} disabled>
+                      <SelectTrigger id="gender" className="bg-muted/50">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Gender cannot be changed after registration</p>
+                  </div>
                 </div>
+
+                {/* Calculated Age Display */}
+                {userAge && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Age
+                    </Label>
+                    <div className="p-3 bg-muted/50 rounded-md border">
+                      <p className="text-sm font-medium">{userAge} years old</p>
+                      <p className="text-xs text-muted-foreground">Automatically calculated from date of birth</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue={user?.email || ""} placeholder="Enter your email" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    defaultValue={user?.phone || user?.phone_number || ""}
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-              </div>
+              {/* Account Status */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Account Status</h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dob">Date of birth</Label>
-                  <Input
-                    id="dob"
-                    type="date"
-                    defaultValue={user?.dateOfBirth || user?.date_of_birth || user?.dob || ""}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="gender">Gender</Label>
-                  <Select defaultValue={user?.gender || user?.sex || "male"}>
-                    <SelectTrigger id="gender">
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Shield className="h-4 w-4 text-green-600" />
+                      <span className="font-medium">Account Status</span>
+                    </div>
+                    <p className="text-sm text-green-600">Active</p>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="age">Age</Label>
-                  <Input id="age" type="number" defaultValue={user?.age || ""} placeholder="Enter your age" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="religion">Religion</Label>
-                  <Select defaultValue={user?.religion || "hindu"}>
-                    <SelectTrigger id="religion">
-                      <SelectValue placeholder="Select religion" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hindu">Hindu</SelectItem>
-                      <SelectItem value="muslim">Muslim</SelectItem>
-                      <SelectItem value="christian">Christian</SelectItem>
-                      <SelectItem value="sikh">Sikh</SelectItem>
-                      <SelectItem value="jain">Jain</SelectItem>
-                      <SelectItem value="buddhist">Buddhist</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Shield className="h-4 w-4 text-blue-600" />
+                      <span className="font-medium">Trust Score</span>
+                    </div>
+                    <p className="text-sm text-blue-600">78% Verified</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button onClick={handleSave} disabled={saving}>
+
+            <CardFooter className="flex justify-between">
+              <p className="text-sm text-muted-foreground">
+                Most profile information cannot be changed after registration for security purposes.
+              </p>
+              <Button onClick={handleSave} disabled={saving} variant="outline">
                 {saving ? (
-                  <>Saving...</>
+                  <>Updating...</>
                 ) : (
                   <>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                    Update Profile Picture
                   </>
                 )}
               </Button>
