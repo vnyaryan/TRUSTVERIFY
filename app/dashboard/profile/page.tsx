@@ -11,25 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { Upload, Save, Shield } from "lucide-react"
 import { ResponsiveImage } from "@/components/ui/responsive-image"
-
-// Mock getCurrentUser function (replace with your actual implementation)
-const getCurrentUser = () => {
-  return {
-    username: "JohnDoe",
-    firstName: "John",
-    lastName: "Doe",
-    email: "john@example.com",
-    phone: "+91 9876543210",
-    dob: "1990-01-01",
-    gender: "male",
-    about:
-      "I am a software engineer with a passion for technology and innovation. I enjoy reading, traveling, and exploring new cultures.",
-    location: "Mumbai, Maharashtra",
-    religion: "hindu",
-    education: "B.Tech in Computer Science",
-    occupation: "Senior Software Engineer",
-  }
-}
+import { getCurrentUser } from "@/lib/auth"
 
 export default function ProfilePage() {
   const { toast } = useToast()
@@ -38,12 +20,23 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUserData = () => {
       try {
+        // ✅ FIXED: Now reads real user data from localStorage
         const userData = getCurrentUser()
-        setUser(userData)
+        console.log("Fetched user data:", userData) // Debug log
+
+        if (userData) {
+          setUser(userData)
+        } else {
+          console.log("No user data found in localStorage")
+          // Redirect to login if no user data
+          window.location.href = "/login"
+        }
       } catch (error) {
         console.error("Failed to fetch user data:", error)
+        // Redirect to login on error
+        window.location.href = "/login"
       } finally {
         setLoading(false)
       }
@@ -63,6 +56,40 @@ export default function ProfilePage() {
         description: "Your profile has been updated successfully.",
       })
     }, 2000)
+  }
+
+  // Show loading state while fetching user data
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading profile...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state if no user data
+  if (!user) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">Unable to load profile data</p>
+            <Button onClick={() => (window.location.href = "/login")}>Return to Login</Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -112,7 +139,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div className="space-y-1 text-center md:text-left">
-                  <h3 className="font-semibold">{user?.username || "Loading..."}</h3>
+                  <h3 className="font-semibold">{user?.username || user?.email || "User"}</h3>
                   <p className="text-sm text-muted-foreground">Update your profile picture</p>
                 </div>
               </div>
@@ -120,33 +147,50 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="first-name">First name</Label>
-                  <Input id="first-name" defaultValue={user?.firstName || ""} />
+                  <Input
+                    id="first-name"
+                    defaultValue={user?.firstName || user?.first_name || ""}
+                    placeholder="Enter your first name"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="last-name">Last name</Label>
-                  <Input id="last-name" defaultValue={user?.lastName || ""} />
+                  <Input
+                    id="last-name"
+                    defaultValue={user?.lastName || user?.last_name || ""}
+                    placeholder="Enter your last name"
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue={user?.email || ""} />
+                  <Input id="email" type="email" defaultValue={user?.email || ""} placeholder="Enter your email" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone number</Label>
-                  <Input id="phone" type="tel" defaultValue={user?.phone || ""} />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    defaultValue={user?.phone || user?.phone_number || ""}
+                    placeholder="Enter your phone number"
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="dob">Date of birth</Label>
-                  <Input id="dob" type="date" defaultValue={user?.dob || ""} />
+                  <Input
+                    id="dob"
+                    type="date"
+                    defaultValue={user?.dateOfBirth || user?.date_of_birth || user?.dob || ""}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="gender">Gender</Label>
-                  <Select defaultValue={user?.gender || "male"}>
+                  <Select defaultValue={user?.gender || user?.sex || "male"}>
                     <SelectTrigger id="gender">
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
@@ -160,11 +204,16 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="age">Age</Label>
+                <Input id="age" type="number" defaultValue={user?.age || ""} placeholder="Enter your age" />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="about">About me</Label>
                 <Textarea
                   id="about"
                   placeholder="Tell us about yourself"
-                  defaultValue={user?.about || ""}
+                  defaultValue={user?.about || user?.bio || ""}
                   className="min-h-[100px]"
                 />
               </div>
@@ -172,7 +221,11 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="location">Location</Label>
-                  <Input id="location" defaultValue={user?.location || ""} />
+                  <Input
+                    id="location"
+                    defaultValue={user?.location || user?.city || ""}
+                    placeholder="Enter your location"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="religion">Religion</Label>
@@ -196,12 +249,26 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="education">Highest Education</Label>
-                  <Input id="education" defaultValue={user?.education || ""} />
+                  <Input
+                    id="education"
+                    defaultValue={user?.education || user?.highest_education || ""}
+                    placeholder="Enter your education"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="occupation">Occupation</Label>
-                  <Input id="occupation" defaultValue={user?.occupation || ""} />
+                  <Input
+                    id="occupation"
+                    defaultValue={user?.occupation || user?.job || ""}
+                    placeholder="Enter your occupation"
+                  />
                 </div>
+              </div>
+
+              {/* Debug Information (remove in production) */}
+              <div className="mt-8 p-4 bg-muted rounded-lg">
+                <h4 className="font-semibold mb-2">Debug Info (User Data):</h4>
+                <pre className="text-xs overflow-auto">{JSON.stringify(user, null, 2)}</pre>
               </div>
             </CardContent>
             <CardFooter>
