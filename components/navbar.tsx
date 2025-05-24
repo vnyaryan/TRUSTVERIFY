@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
 import { cn } from "@/lib/utils"
 import { Menu, X } from "lucide-react"
+import { isAuthenticated, getCurrentUser, logout } from "@/lib/auth"
 
 const navItems = [
   { name: "Home", href: "/" },
@@ -20,6 +21,13 @@ const navItems = [
 export function Navbar() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    setIsLoggedIn(isAuthenticated())
+    setUser(getCurrentUser())
+  }, [])
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
@@ -60,16 +68,37 @@ export function Navbar() {
 
         <div className="hidden md:flex items-center gap-4">
           <ModeToggle />
-          <Link href="/login">
-            <Button variant="outline" size="sm" className="border-primary/20 hover:bg-primary-50">
-              Log in
-            </Button>
-          </Link>
-          <Link href="/register">
-            <Button size="sm" className="premium-button">
-              Sign up
-            </Button>
-          </Link>
+          {isLoggedIn && user ? (
+            <>
+              <span className="text-sm text-muted-foreground">Welcome, {user.username}</span>
+              <Link href="/profile">
+                <Button variant="outline" size="sm" className="border-primary/20 hover:bg-primary-50">
+                  Profile
+                </Button>
+              </Link>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-red-200 text-red-600 hover:bg-red-50"
+                onClick={logout}
+              >
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="outline" size="sm" className="border-primary/20 hover:bg-primary-50">
+                  Log in
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button size="sm" className="premium-button">
+                  Sign up
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
         <div className="md:hidden flex items-center gap-4">
@@ -105,16 +134,36 @@ export function Navbar() {
               ))}
             </nav>
             <div className="flex flex-col space-y-2">
-              <Link href="/login">
-                <Button variant="outline" className="w-full border-primary/20 hover:bg-primary-50" size="sm">
-                  Log in
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button className="w-full premium-button" size="sm">
-                  Sign up
-                </Button>
-              </Link>
+              {isLoggedIn && user ? (
+                <>
+                  <Link href="/profile">
+                    <Button variant="outline" className="w-full border-primary/20 hover:bg-primary-50" size="sm">
+                      Profile
+                    </Button>
+                  </Link>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-red-200 text-red-600 hover:bg-red-50"
+                    onClick={logout}
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="outline" className="w-full border-primary/20 hover:bg-primary-50" size="sm">
+                      Log in
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button className="w-full premium-button" size="sm">
+                      Sign up
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
