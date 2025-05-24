@@ -6,10 +6,10 @@ export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body = await request.json()
-    const { email, password, dateOfBirth, sex, username } = body
+    const { email, password, dateOfBirth, sex } = body
 
     // Validate required fields
-    if (!email || !password || !dateOfBirth || !sex || !username) {
+    if (!email || !password || !dateOfBirth || !sex) {
       return Response.json(
         {
           success: false,
@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
             password: !password,
             dateOfBirth: !dateOfBirth,
             sex: !sex,
-            username: !username,
           },
         },
         { status: 400 },
@@ -32,11 +31,7 @@ export async function POST(request: NextRequest) {
       password: password, // Don't sanitize password as it might contain special chars
       dateOfBirth: sanitizeInput(dateOfBirth),
       sex: sanitizeInput(sex),
-      username: sanitizeInput(username.toLowerCase()),
     }
-
-    // Calculate age from date of birth
-    const age = calculateAge(sanitizedData.dateOfBirth)
 
     // Validate all fields using existing validation functions
     const validationErrors = validateAllFields({
@@ -44,7 +39,6 @@ export async function POST(request: NextRequest) {
       password: sanitizedData.password,
       dateOfBirth: sanitizedData.dateOfBirth,
       sex: sanitizedData.sex,
-      username: sanitizedData.username,
     })
 
     // If validation errors exist, return them
@@ -65,26 +59,27 @@ export async function POST(request: NextRequest) {
       password: sanitizedData.password,
       dateOfBirth: sanitizedData.dateOfBirth,
       sex: sanitizedData.sex,
-      age: age,
-      username: sanitizedData.username,
     }
 
     // Create user in database
     const result = await createUser(userData)
 
     if (result.success) {
-      // Success response
+      // Calculate age for response
+      const age = calculateAge(sanitizedData.dateOfBirth)
+
+      // Success response with both email ID and numeric user ID
       return Response.json(
         {
           success: true,
           message: result.message,
           data: {
             email: userData.email,
-            username: userData.username,
-            age: userData.age,
+            age: age,
             sex: userData.sex,
             dateOfBirth: userData.dateOfBirth,
-            userId: result.userId,
+            userId: result.userId, // Email-based ID
+            numericUserId: result.numericUserId, // Auto-generated numeric ID
           },
           router: "App Router",
         },

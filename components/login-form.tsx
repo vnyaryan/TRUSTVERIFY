@@ -1,17 +1,19 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { Eye, EyeOff, Mail, Lock, CheckCircle, XCircle } from "lucide-react"
+import Link from "next/link"
 
 export function LoginForm() {
-  const router = useRouter()
+  const { toast } = useToast()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -19,6 +21,17 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+    // Clear error when user starts typing
+    if (error) setError("")
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,63 +39,75 @@ export function LoginForm() {
     setError("")
 
     try {
-      // ✅ FIXED: Using correct API endpoint
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
+        body: JSON.stringify(formData),
       })
 
-      const result = await response.json()
+      const data = await response.json()
 
-      if (result.success) {
-        // Store user data in localStorage
-        localStorage.setItem("user", JSON.stringify(result.user))
+      if (data.success) {
+        // Store complete user data in localStorage
+        localStorage.setItem("user", JSON.stringify(data.user))
         localStorage.setItem("isLoggedIn", "true")
 
-        // Redirect to profile page
-        router.push("/profile")
+        setSuccess(true)
+        toast({
+          title: "Login successful",
+          description: "Welcome back! Redirecting to dashboard...",
+        })
+
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          window.location.href = "/dashboard"
+        }, 1500)
       } else {
-        setError(result.message || "Login failed")
+        setError(data.message || "Login failed")
       }
     } catch (error) {
       console.error("Login error:", error)
-      setError("Network error. Please check your connection and try again.")
+      setError("An error occurred during login. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }))
-    // Clear error when user starts typing
-    if (error) setError("")
+  if (success) {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardContent className="pt-6">
+          <div className="text-center space-y-4">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+            <div>
+              <h3 className="text-lg font-semibold text-green-700">Login Successful!</h3>
+              <p className="text-sm text-muted-foreground">Redirecting to your dashboard...</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
     <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-        <CardDescription>Sign in to your TrustVerify account</CardDescription>
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
+        <CardDescription className="text-center">Sign in to your TrustVerify account</CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
           {error && (
             <Alert variant="destructive">
+              <XCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email Address</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -91,7 +116,7 @@ export function LoginForm() {
                 type="email"
                 placeholder="Enter your email"
                 value={formData.email}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 className="pl-10"
                 required
                 disabled={isLoading}
@@ -109,47 +134,34 @@ export function LoginForm() {
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={formData.password}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 className="pl-10 pr-10"
                 required
                 disabled={isLoading}
               />
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                 onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground"
                 disabled={isLoading}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                )}
-              </Button>
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
           </div>
-
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-4">
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              "Sign In"
-            )}
+            {isLoading ? "Signing in..." : "Sign In"}
           </Button>
-        </form>
-
-        <div className="mt-4 text-center text-sm">
-          <span className="text-muted-foreground">Don't have an account? </span>
-          <Button variant="link" className="p-0 h-auto font-normal" onClick={() => router.push("/register")}>
-            Sign up
-          </Button>
-        </div>
-      </CardContent>
+          <div className="text-center text-sm">
+            <span className="text-muted-foreground">Don't have an account? </span>
+            <Link href="/register" className="text-primary hover:underline font-medium">
+              Sign up
+            </Link>
+          </div>
+        </CardFooter>
+      </form>
     </Card>
   )
 }

@@ -104,3 +104,8 @@ export class BlobLogger {
     }
   }
 }
+
+// Export the static method as a named export for easier importing
+export const logAuthEvent = BlobLogger.logAuthEvent.bind(BlobLogger)
+export const getLogsByDate = BlobLogger.getLogsByDate.bind(BlobLogger)
+export const getRecentLogs = BlobLogger.getRecentLogs.bind(BlobLogger)

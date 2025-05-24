@@ -14,25 +14,26 @@ export interface VerificationItem {
 }
 
 /**
- * Sanitizes username to prevent path traversal attacks
- * @param username - Raw username input
- * @returns Sanitized username or null if invalid
+ * Sanitizes user ID to prevent path traversal attacks
+ * @param userId - Numeric user ID
+ * @returns Sanitized user ID or null if invalid
  */
-function sanitizeUsername(username: string): string | null {
-  // Remove any path traversal attempts and special characters
-  const sanitized = username.replace(/[^a-zA-Z0-9_-]/g, "")
+function sanitizeUserId(userId: number | string): string | null {
+  // Convert to string and validate it's a positive integer
+  const userIdStr = String(userId)
 
-  // Validate length and format
-  if (sanitized.length < 1 || sanitized.length > 50) {
+  // Check if it's a valid positive integer
+  if (!/^\d+$/.test(userIdStr) || Number.parseInt(userIdStr) <= 0) {
     return null
   }
 
-  // Ensure it doesn't start with dots or contain only dots
-  if (sanitized.startsWith(".") || sanitized === "." || sanitized === "..") {
+  // Additional safety check for reasonable range (1 to 999999)
+  const numericId = Number.parseInt(userIdStr)
+  if (numericId < 1 || numericId > 999999) {
     return null
   }
 
-  return sanitized
+  return userIdStr
 }
 
 /**
@@ -84,29 +85,12 @@ function getDisplayName(fieldName: string): string {
 }
 
 /**
- * Fetches verification data from JSON file
- * @param username - User identifier
- * @returns Promise with verification data or error
+ * Fetches JSON data from a given file path
+ * @param filePath - Path to the JSON file
+ * @returns Promise with parsed JSON data or null if not found
  */
-export async function fetchVerificationData(username: string): Promise<{
-  success: boolean
-  data?: VerificationItem[]
-  error?: string
-}> {
+async function fetchJsonFile(filePath: string): Promise<VerificationData | null> {
   try {
-    // Sanitize username for security
-    const sanitizedUsername = sanitizeUsername(username)
-    if (!sanitizedUsername) {
-      return {
-        success: false,
-        error: "Invalid username format",
-      }
-    }
-
-    // Construct file path
-    const filePath = `/data/${sanitizedUsername}.json`
-
-    // Fetch with timeout for performance
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
 
@@ -118,56 +102,107 @@ export async function fetchVerificationData(username: string): Promise<{
     clearTimeout(timeoutId)
 
     if (!response.ok) {
-      if (response.status === 404) {
-        return {
-          success: false,
-          error: "Verification data not found",
-        }
-      }
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      return null // File not found or other error
     }
 
     // Parse JSON with error handling
-    let jsonData: VerificationData
     try {
-      jsonData = await response.json()
+      const jsonData = await response.json()
+
+      // Validate JSON structure
+      if (!jsonData || typeof jsonData !== "object") {
+        return null
+      }
+
+      return jsonData as VerificationData
     } catch (parseError) {
+      console.warn(`Failed to parse JSON from ${filePath}:`, parseError)
+      return null
+    }
+  } catch (error) {
+    console.warn(`Failed to fetch ${filePath}:`, error)
+    return null
+  }
+}
+
+/**
+ * Transforms verification data to UI format
+ * @param jsonData - Raw verification data from JSON
+ * @returns Array of verification items for UI display
+ */
+function transformVerificationData(jsonData: VerificationData): VerificationItem[] {
+  return Object.entries(jsonData)
+    .filter(([_, value]) => typeof value === "string") // Only process string values
+    .map(([key, value]) => {
+      const { status, isVerified } = normalizeStatus(value as string)
+      return {
+        document: getDisplayName(key),
+        status,
+        isVerified,
+      }
+    })
+    .sort((a, b) => {
+      // Sort verified items first, then by document name
+      if (a.isVerified !== b.isVerified) {
+        return a.isVerified ? -1 : 1
+      }
+      return a.document.localeCompare(b.document)
+    })
+}
+
+/**
+ * Fetches verification data from JSON file using user ID with fallback to default.json
+ * @param userId - Numeric user ID
+ * @returns Promise with verification data or error
+ */
+export async function fetchVerificationData(userId: number | string): Promise<{
+  success: boolean
+  data?: VerificationItem[]
+  error?: string
+  source?: "user" | "default" | "fallback"
+}> {
+  try {
+    // Sanitize user ID for security
+    const sanitizedUserId = sanitizeUserId(userId)
+    if (!sanitizedUserId) {
       return {
         success: false,
-        error: "Invalid data format",
+        error: "Invalid user ID format",
       }
     }
 
-    // Validate JSON structure
-    if (!jsonData || typeof jsonData !== "object") {
-      return {
-        success: false,
-        error: "Invalid data structure",
+    // Try to fetch user-specific file first
+    const userFilePath = `/data/${sanitizedUserId}.json`
+    console.log(`Attempting to fetch user verification data: ${userFilePath}`)
+
+    let jsonData = await fetchJsonFile(userFilePath)
+    let source: "user" | "default" | "fallback" = "user"
+
+    // If user file not found, try default.json
+    if (!jsonData) {
+      console.log(`User file ${userFilePath} not found, trying default.json`)
+      const defaultFilePath = `/data/default.json`
+      jsonData = await fetchJsonFile(defaultFilePath)
+      source = "default"
+
+      // If default.json also not found, use hardcoded fallback
+      if (!jsonData) {
+        console.log("Default.json not found, using hardcoded fallback")
+        return {
+          success: true,
+          data: getDefaultVerificationData(),
+          source: "fallback",
+        }
       }
     }
 
     // Transform data for UI
-    const verificationItems: VerificationItem[] = Object.entries(jsonData)
-      .filter(([_, value]) => typeof value === "string") // Only process string values
-      .map(([key, value]) => {
-        const { status, isVerified } = normalizeStatus(value as string)
-        return {
-          document: getDisplayName(key),
-          status,
-          isVerified,
-        }
-      })
-      .sort((a, b) => {
-        // Sort verified items first, then by document name
-        if (a.isVerified !== b.isVerified) {
-          return a.isVerified ? -1 : 1
-        }
-        return a.document.localeCompare(b.document)
-      })
+    const verificationItems = transformVerificationData(jsonData)
 
     return {
       success: true,
       data: verificationItems,
+      source,
     }
   } catch (error) {
     console.error("Verification data fetch error:", error)
@@ -187,36 +222,49 @@ export async function fetchVerificationData(username: string): Promise<{
       }
     }
 
+    // Return fallback data even on error
     return {
-      success: false,
-      error: "Failed to load verification data",
+      success: true,
+      data: getDefaultVerificationData(),
+      source: "fallback",
     }
   }
 }
 
 /**
- * Gets current user's verification data
+ * Gets current user's verification data using their numeric user ID
  * @returns Promise with verification data
  */
 export async function getCurrentUserVerificationData(): Promise<{
   success: boolean
   data?: VerificationItem[]
   error?: string
+  source?: "user" | "default" | "fallback"
 }> {
   const user = getCurrentUser()
 
-  if (!user || !user.username) {
+  if (!user) {
     return {
       success: false,
       error: "User not authenticated",
     }
   }
 
-  return fetchVerificationData(user.username)
+  // Try to get user ID from user object
+  const userId = user.userId || user.numericUserId || user.id
+
+  if (!userId) {
+    return {
+      success: false,
+      error: "User ID not found in session",
+    }
+  }
+
+  return fetchVerificationData(userId)
 }
 
 /**
- * Default verification data for fallback
+ * Default verification data for fallback (hardcoded)
  */
 export const getDefaultVerificationData = (): VerificationItem[] => [
   {

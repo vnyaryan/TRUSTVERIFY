@@ -1,157 +1,71 @@
-import type { NextRequest } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { getUserByEmail } from "@/lib/db-operations"
 import { verifyPassword } from "@/lib/password-utils"
-import { validateEmail } from "@/lib/form-validation"
-import { BlobLogger } from "@/lib/blob-logger"
+import { logAuthEvent } from "@/lib/blob-logger"
 
 export async function POST(request: NextRequest) {
-  const startTime = Date.now()
-  let email = ""
-  let ipAddress = ""
-  let userAgent = ""
-
   try {
-    const body = await request.json()
-    email = body.email || ""
-    const password = body.password || ""
+    const { email, password } = await request.json()
 
-    // Get request metadata
-    ipAddress = request.ip || request.headers.get("x-forwarded-for") || "unknown"
-    userAgent = request.headers.get("user-agent") || "unknown"
-
-    // Validate required fields
     if (!email || !password) {
-      await BlobLogger.logAuthEvent({
-        eventType: "login_failure",
-        email,
-        ipAddress,
-        userAgent,
-        errorMessage: "Missing email or password",
-        additionalData: { missingFields: { email: !email, password: !password } },
-      })
-
-      return Response.json(
-        {
-          success: false,
-          message: "Email and password are required",
-        },
-        { status: 400 },
-      )
-    }
-
-    // Validate email format
-    const emailError = validateEmail(email)
-    if (emailError) {
-      await BlobLogger.logAuthEvent({
-        eventType: "login_failure",
-        email,
-        ipAddress,
-        userAgent,
-        errorMessage: emailError,
-      })
-
-      return Response.json(
-        {
-          success: false,
-          message: emailError,
-        },
-        { status: 400 },
-      )
+      await logAuthEvent("login_failed", email, "Missing credentials")
+      return NextResponse.json({ success: false, message: "Email and password are required" }, { status: 400 })
     }
 
     // Get user from database
-    const user = await getUserByEmail(email.toLowerCase())
-    if (!user) {
-      await BlobLogger.logAuthEvent({
-        eventType: "login_failure",
-        email,
-        ipAddress,
-        userAgent,
-        errorMessage: "User not found",
-      })
+    const user = await getUserByEmail(email)
 
-      return Response.json(
-        {
-          success: false,
-          message: "Invalid email or password",
-        },
-        { status: 401 },
-      )
+    if (!user) {
+      await logAuthEvent("login_failed", email, "User not found")
+      return NextResponse.json({ success: false, message: "Invalid email or password" }, { status: 401 })
     }
 
     // Verify password
-    const isPasswordValid = await verifyPassword(password, user.password)
-    if (!isPasswordValid) {
-      await BlobLogger.logAuthEvent({
-        eventType: "login_failure",
-        email,
-        ipAddress,
-        userAgent,
-        errorMessage: "Invalid password",
-        additionalData: { userId: user.id },
-      })
+    const isValidPassword = await verifyPassword(password, user.password)
 
-      return Response.json(
-        {
-          success: false,
-          message: "Invalid email or password",
-        },
-        { status: 401 },
-      )
+    if (!isValidPassword) {
+      await logAuthEvent("login_failed", email, "Invalid password")
+      return NextResponse.json({ success: false, message: "Invalid email or password" }, { status: 401 })
     }
 
-    // SUCCESS - Log successful login
-    await BlobLogger.logAuthEvent({
-      eventType: "login_success",
-      email,
-      ipAddress,
-      userAgent,
-      additionalData: {
-        userId: user.id,
-        username: user.username,
-        loginDuration: Date.now() - startTime,
-      },
-    })
+    // Calculate age from date of birth
+    const calculateAge = (dateOfBirth: string) => {
+      if (!dateOfBirth) return null
 
-    // Create response with user data
-    const response = Response.json({
+      const today = new Date()
+      const birthDate = new Date(dateOfBirth)
+      let age = today.getFullYear() - birthDate.getFullYear()
+      const monthDiff = today.getMonth() - birthDate.getMonth()
+
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--
+      }
+
+      return age
+    }
+
+    // Prepare complete user data for frontend including numeric user ID
+    const userData = {
+      email: user.email_id,
+      dateOfBirth: user.date_of_birth,
+      sex: user.sex,
+      age: calculateAge(user.date_of_birth),
+      userId: user.userid, // Include the numeric user ID
+      numericUserId: user.userid, // Alternative field name for clarity
+      createdAt: user.created_at,
+      updatedAt: user.updated_at,
+    }
+
+    await logAuthEvent("login_success", email, "User logged in successfully")
+
+    return NextResponse.json({
       success: true,
       message: "Login successful",
-      user: {
-        email: user.email_id,
-        username: user.username,
-        age: user.age,
-        sex: user.sex,
-      },
-    })
-
-    // Set simple session cookie
-    const headers = new Headers(response.headers)
-    headers.set("Set-Cookie", `session=logged-in; Path=/; HttpOnly; SameSite=Strict; Max-Age=${60 * 60 * 24 * 7}`)
-
-    return new Response(response.body, {
-      status: response.status,
-      headers,
+      user: userData,
     })
   } catch (error) {
-    console.error("Login API error:", error)
-
-    // Log the error
-    await BlobLogger.logAuthEvent({
-      eventType: "login_failure",
-      email,
-      ipAddress,
-      userAgent,
-      errorMessage: `Internal server error: ${error instanceof Error ? error.message : "Unknown error"}`,
-      additionalData: { errorStack: error instanceof Error ? error.stack : undefined },
-    })
-
-    return Response.json(
-      {
-        success: false,
-        message: "Internal server error. Please try again later.",
-      },
-      { status: 500 },
-    )
+    console.error("Login error:", error)
+    await logAuthEvent("login_error", "", `Login error: ${error.message}`)
+    return NextResponse.json({ success: false, message: "An error occurred during login" }, { status: 500 })
   }
 }

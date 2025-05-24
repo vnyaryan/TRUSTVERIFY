@@ -51,62 +51,6 @@ export function validatePassword(password: string): string | null {
   return null
 }
 
-// Username validation
-export function validateUsername(username: string): string | null {
-  if (!username) {
-    return "Username is required"
-  }
-
-  if (username.length < 3) {
-    return "Username must be at least 3 characters long"
-  }
-
-  if (username.length > 20) {
-    return "Username must be no more than 20 characters long"
-  }
-
-  if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(username)) {
-    return "Username must start with a letter and contain only letters, numbers, and underscores"
-  }
-
-  // Reserved usernames
-  const reservedUsernames = [
-    "admin",
-    "administrator",
-    "root",
-    "user",
-    "test",
-    "guest",
-    "api",
-    "www",
-    "mail",
-    "email",
-    "support",
-    "help",
-    "info",
-    "contact",
-    "about",
-    "privacy",
-    "terms",
-    "login",
-    "signup",
-    "register",
-    "auth",
-    "authentication",
-    "password",
-    "forgot",
-    "reset",
-    "verify",
-    "verification",
-  ]
-
-  if (reservedUsernames.includes(username.toLowerCase())) {
-    return "This username is reserved. Please choose another one"
-  }
-
-  return null
-}
-
 // Date of birth validation
 export function validateDateOfBirth(dateOfBirth: string): string | null {
   if (!dateOfBirth) {
@@ -201,11 +145,6 @@ export function validateAllFields(formData: Partial<SignupFormData>): Validation
   if (formData.password !== undefined) {
     const passwordError = validatePassword(formData.password)
     if (passwordError) errors.password = passwordError
-  }
-
-  if (formData.username !== undefined) {
-    const usernameError = validateUsername(formData.username)
-    if (usernameError) errors.username = usernameError
   }
 
   if (formData.dateOfBirth !== undefined) {
