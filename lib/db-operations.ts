@@ -1,5 +1,5 @@
-import { sql } from "@vercel/postgres"
-import { hash } from "bcrypt"
+import { sql } from "./db"
+import { hashPassword } from "./password-utils"
 
 export interface UserData {
   email: string
@@ -17,6 +17,19 @@ export interface DatabaseUser {
   sex: string
 }
 
+// Check if email already exists
+export async function checkEmailExists(email: string): Promise<boolean> {
+  try {
+    const result = await sql`
+      SELECT email_id FROM user_details WHERE email_id = ${email}
+    `
+    return result.length > 0
+  } catch (error) {
+    console.error("Error checking email existence:", error)
+    throw new Error("Failed to check email availability")
+  }
+}
+
 // Insert new user into database
 export async function createUser(userData: UserData): Promise<{ success: boolean; message: string; userId?: string }> {
   try {
@@ -26,7 +39,7 @@ export async function createUser(userData: UserData): Promise<{ success: boolean
       return { success: false, message: "Email address is already registered" }
     }
 
-    // Hash the password
+    // Hash the password using existing utility
     const hashedPassword = await hashPassword(userData.password)
 
     // Calculate age from date of birth
@@ -67,23 +80,6 @@ export async function createUser(userData: UserData): Promise<{ success: boolean
     console.error("Error creating user:", error)
     return { success: false, message: "Database error occurred while creating user" }
   }
-}
-
-// Check if email exists
-async function checkEmailExists(email: string): Promise<boolean> {
-  try {
-    const result = await sql`SELECT email_id FROM user_details WHERE email_id = ${email}`
-    return result.rowCount > 0
-  } catch (error) {
-    console.error("Error checking email existence:", error)
-    return true // Return true to prevent user creation in case of database error
-  }
-}
-
-// Hash password
-async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 10
-  return await hash(password, saltRounds)
 }
 
 // Calculate age from date of birth
@@ -170,5 +166,3 @@ export async function getUserCount(): Promise<number> {
 export function sanitizeInput(input: string): string {
   return input.trim().replace(/[<>]/g, "")
 }
-
-// Hash password utility
