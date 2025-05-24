@@ -5,6 +5,10 @@ export interface User {
   username: string
   age: number
   sex: string
+  firstName?: string
+  lastName?: string
+  phone?: string
+  dateOfBirth?: string
 }
 
 // Simple client-side auth check

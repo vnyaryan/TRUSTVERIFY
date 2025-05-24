@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,9 +12,45 @@ import { useToast } from "@/hooks/use-toast"
 import { Upload, Save, Shield, Eye, EyeOff } from "lucide-react"
 import { ResponsiveImage } from "@/components/ui/responsive-image"
 
+// Mock getCurrentUser function (replace with your actual implementation)
+const getCurrentUser = () => {
+  return {
+    username: "JohnDoe",
+    firstName: "John",
+    lastName: "Doe",
+    email: "john@example.com",
+    phone: "+91 9876543210",
+    dob: "1990-01-01",
+    gender: "male",
+    about:
+      "I am a software engineer with a passion for technology and innovation. I enjoy reading, traveling, and exploring new cultures.",
+    location: "Mumbai, Maharashtra",
+    religion: "hindu",
+    education: "B.Tech in Computer Science",
+    occupation: "Senior Software Engineer",
+  }
+}
+
 export default function ProfilePage() {
   const { toast } = useToast()
   const [saving, setSaving] = useState(false)
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userData = getCurrentUser()
+        setUser(userData)
+      } catch (error) {
+        console.error("Failed to fetch user data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserData()
+  }, [])
 
   const handleSave = () => {
     setSaving(true)
@@ -79,7 +115,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div className="space-y-1 text-center md:text-left">
-                  <h3 className="font-semibold">John Doe</h3>
+                  <h3 className="font-semibold">{user?.username || "Loading..."}</h3>
                   <p className="text-sm text-muted-foreground">Update your profile picture</p>
                 </div>
               </div>
@@ -87,33 +123,33 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="first-name">First name</Label>
-                  <Input id="first-name" defaultValue="John" />
+                  <Input id="first-name" defaultValue={user?.firstName || ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="last-name">Last name</Label>
-                  <Input id="last-name" defaultValue="Doe" />
+                  <Input id="last-name" defaultValue={user?.lastName || ""} />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="john@example.com" />
+                  <Input id="email" type="email" defaultValue={user?.email || ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone number</Label>
-                  <Input id="phone" type="tel" defaultValue="+91 9876543210" />
+                  <Input id="phone" type="tel" defaultValue={user?.phone || ""} />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="dob">Date of birth</Label>
-                  <Input id="dob" type="date" defaultValue="1990-01-01" />
+                  <Input id="dob" type="date" defaultValue={user?.dob || ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="gender">Gender</Label>
-                  <Select defaultValue="male">
+                  <Select defaultValue={user?.gender || "male"}>
                     <SelectTrigger id="gender">
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
@@ -131,7 +167,7 @@ export default function ProfilePage() {
                 <Textarea
                   id="about"
                   placeholder="Tell us about yourself"
-                  defaultValue="I am a software engineer with a passion for technology and innovation. I enjoy reading, traveling, and exploring new cultures."
+                  defaultValue={user?.about || ""}
                   className="min-h-[100px]"
                 />
               </div>
@@ -139,11 +175,11 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="location">Location</Label>
-                  <Input id="location" defaultValue="Mumbai, Maharashtra" />
+                  <Input id="location" defaultValue={user?.location || ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="religion">Religion</Label>
-                  <Select defaultValue="hindu">
+                  <Select defaultValue={user?.religion || "hindu"}>
                     <SelectTrigger id="religion">
                       <SelectValue placeholder="Select religion" />
                     </SelectTrigger>
@@ -163,11 +199,11 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="education">Highest Education</Label>
-                  <Input id="education" defaultValue="B.Tech in Computer Science" />
+                  <Input id="education" defaultValue={user?.education || ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="occupation">Occupation</Label>
-                  <Input id="occupation" defaultValue="Senior Software Engineer" />
+                  <Input id="occupation" defaultValue={user?.occupation || ""} />
                 </div>
               </div>
             </CardContent>
