@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
@@ -22,20 +21,16 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUserData = () => {
       try {
-        // ✅ FIXED: Now reads real user data from localStorage
         const userData = getCurrentUser()
-        console.log("Fetched user data:", userData) // Debug log
 
         if (userData) {
           setUser(userData)
         } else {
           console.log("No user data found in localStorage")
-          // Redirect to login if no user data
           window.location.href = "/login"
         }
       } catch (error) {
         console.error("Failed to fetch user data:", error)
-        // Redirect to login on error
         window.location.href = "/login"
       } finally {
         setLoading(false)
@@ -203,29 +198,10 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="age">Age</Label>
-                <Input id="age" type="number" defaultValue={user?.age || ""} placeholder="Enter your age" />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="about">About me</Label>
-                <Textarea
-                  id="about"
-                  placeholder="Tell us about yourself"
-                  defaultValue={user?.about || user?.bio || ""}
-                  className="min-h-[100px]"
-                />
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    defaultValue={user?.location || user?.city || ""}
-                    placeholder="Enter your location"
-                  />
+                  <Label htmlFor="age">Age</Label>
+                  <Input id="age" type="number" defaultValue={user?.age || ""} placeholder="Enter your age" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="religion">Religion</Label>
@@ -244,31 +220,6 @@ export default function ProfilePage() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="education">Highest Education</Label>
-                  <Input
-                    id="education"
-                    defaultValue={user?.education || user?.highest_education || ""}
-                    placeholder="Enter your education"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="occupation">Occupation</Label>
-                  <Input
-                    id="occupation"
-                    defaultValue={user?.occupation || user?.job || ""}
-                    placeholder="Enter your occupation"
-                  />
-                </div>
-              </div>
-
-              {/* Debug Information (remove in production) */}
-              <div className="mt-8 p-4 bg-muted rounded-lg">
-                <h4 className="font-semibold mb-2">Debug Info (User Data):</h4>
-                <pre className="text-xs overflow-auto">{JSON.stringify(user, null, 2)}</pre>
               </div>
             </CardContent>
             <CardFooter>
