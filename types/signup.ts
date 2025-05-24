@@ -3,8 +3,8 @@ export interface SignupFormData {
   password: string
   dateOfBirth: string
   sex: string
-  age: number
-  username: string
+  firstName: string
+  lastName: string
 }
 
 export interface ValidationErrors {
@@ -12,28 +12,8 @@ export interface ValidationErrors {
   password?: string
   dateOfBirth?: string
   sex?: string
-  age?: string
-  username?: string
-}
-
-export type SexOption = "male" | "female" | "other" | "prefer-not-to-say"
-
-export interface FormFieldProps {
-  label: string
-  error?: string
-  required?: boolean
-}
-
-export interface PasswordStrength {
-  score: number
-  feedback: string[]
-}
-
-export interface ApiResponse {
-  success: boolean
-  message: string
-  data?: any
-  errors?: ValidationErrors
+  firstName?: string
+  lastName?: string
 }
 
 export interface DatabaseUser {
@@ -43,6 +23,6 @@ export interface DatabaseUser {
   created_at: Date
   updated_at: Date
   sex: string
-  age: number
-  username: string
+  first_name: string
+  last_name: string
 }

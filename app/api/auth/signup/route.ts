@@ -1,127 +1,66 @@
-import type { NextRequest } from "next/server"
-import { createUser, sanitizeInput } from "@/lib/db-operations"
-import { validateAllFields, calculateAge } from "@/lib/form-validation"
+import { createUser, validateAllFields } from "@/lib/user-actions"
+import { NextResponse } from "next/server"
 
-export async function POST(request: NextRequest) {
-  try {
-    // Parse request body
-    const body = await request.json()
-    const { email, password, dateOfBirth, sex, username } = body
+function calculateAge(dateOfBirth: string): number {
+  if (!dateOfBirth) return 0
 
-    // Validate required fields
-    if (!email || !password || !dateOfBirth || !sex || !username) {
-      return Response.json(
-        {
-          success: false,
-          message: "All fields are required",
-          missingFields: {
-            email: !email,
-            password: !password,
-            dateOfBirth: !dateOfBirth,
-            sex: !sex,
-            username: !username,
-          },
-        },
-        { status: 400 },
-      )
-    }
+  const today = new Date()
+  const birthDate = new Date(dateOfBirth)
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
 
-    // Sanitize inputs
-    const sanitizedData = {
-      email: sanitizeInput(email.toLowerCase()),
-      password: password, // Don't sanitize password as it might contain special chars
-      dateOfBirth: sanitizeInput(dateOfBirth),
-      sex: sanitizeInput(sex),
-      username: sanitizeInput(username.toLowerCase()),
-    }
-
-    // Calculate age from date of birth
-    const age = calculateAge(sanitizedData.dateOfBirth)
-
-    // Validate all fields using existing validation functions
-    const validationErrors = validateAllFields({
-      email: sanitizedData.email,
-      password: sanitizedData.password,
-      dateOfBirth: sanitizedData.dateOfBirth,
-      sex: sanitizedData.sex,
-      username: sanitizedData.username,
-    })
-
-    // If validation errors exist, return them
-    if (Object.keys(validationErrors).length > 0) {
-      return Response.json(
-        {
-          success: false,
-          message: "Validation failed",
-          errors: validationErrors,
-        },
-        { status: 400 },
-      )
-    }
-
-    // Prepare user data for database insertion
-    const userData = {
-      email: sanitizedData.email,
-      password: sanitizedData.password,
-      dateOfBirth: sanitizedData.dateOfBirth,
-      sex: sanitizedData.sex,
-      age: age,
-      username: sanitizedData.username,
-    }
-
-    // Create user in database
-    const result = await createUser(userData)
-
-    if (result.success) {
-      // Success response
-      return Response.json(
-        {
-          success: true,
-          message: result.message,
-          data: {
-            email: userData.email,
-            username: userData.username,
-            age: userData.age,
-            sex: userData.sex,
-            dateOfBirth: userData.dateOfBirth,
-            userId: result.userId,
-          },
-          router: "App Router",
-        },
-        { status: 201 },
-      )
-    } else {
-      // Database error or duplicate user
-      return Response.json(
-        {
-          success: false,
-          message: result.message,
-        },
-        { status: 400 },
-      )
-    }
-  } catch (error) {
-    console.error("Signup API error:", error)
-
-    // Return generic error message to client
-    return Response.json(
-      {
-        success: false,
-        message: "Internal server error. Please try again later.",
-      },
-      { status: 500 },
-    )
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
   }
+
+  return age
 }
 
-// Handle other HTTP methods
-export async function GET() {
-  return Response.json(
-    {
-      success: false,
-      message: "Method not allowed. Use POST to create an account.",
-      allowedMethods: ["POST"],
-    },
-    { status: 405 },
-  )
+export async function POST(request: Request) {
+  try {
+    const { email, password, dateOfBirth, sex, firstName, lastName } = await request.json()
+
+    if (!email || !password || !dateOfBirth || !sex || !firstName || !lastName) {
+      return NextResponse.json({ success: false, message: "All fields are required" }, { status: 400 })
+    }
+
+    const validationErrors = validateAllFields({
+      email,
+      password,
+      firstName,
+      lastName,
+      dateOfBirth,
+      sex,
+    })
+
+    if (validationErrors) {
+      return NextResponse.json({ success: false, message: validationErrors }, { status: 400 })
+    }
+
+    const result = await createUser({
+      email,
+      password,
+      dateOfBirth,
+      sex,
+      firstName,
+      lastName,
+    })
+
+    if (!result.success) {
+      return NextResponse.json({ success: false, message: result.message }, { status: 400 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "User created successfully",
+      data: {
+        email,
+        firstName,
+        lastName,
+        age: calculateAge(dateOfBirth),
+      },
+    })
+  } catch (error: any) {
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+  }
 }

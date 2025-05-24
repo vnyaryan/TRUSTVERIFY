@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,10 +12,10 @@ import { Eye, EyeOff, CheckCircle, XCircle, User, Mail, Lock, Calendar, Users, D
 import {
   validateEmail,
   validatePassword,
-  validateUsername,
+  validateFirstName,
+  validateLastName,
   validateDateOfBirth,
   validateSex,
-  calculateAge,
   getPasswordStrength,
 } from "@/lib/form-validation"
 import type { SignupFormData, ValidationErrors } from "@/types/signup"
@@ -26,8 +26,8 @@ export function SignupForm() {
     password: "",
     dateOfBirth: "",
     sex: "",
-    age: 0,
-    username: "",
+    firstName: "",
+    lastName: "",
   })
 
   const [errors, setErrors] = useState<ValidationErrors>({})
@@ -38,15 +38,7 @@ export function SignupForm() {
   const [submitError, setSubmitError] = useState<string>("")
   const [successData, setSuccessData] = useState<any>(null)
 
-  // Calculate age whenever date of birth changes
-  useEffect(() => {
-    if (formData.dateOfBirth) {
-      const age = calculateAge(formData.dateOfBirth)
-      setFormData((prev) => ({ ...prev, age }))
-    }
-  }, [formData.dateOfBirth])
-
-  const handleFieldChange = (field: keyof SignupFormData, value: string | number) => {
+  const handleFieldChange = (field: keyof SignupFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
 
     // Clear error when user starts typing
@@ -73,8 +65,11 @@ export function SignupForm() {
       case "password":
         error = validatePassword(formData.password)
         break
-      case "username":
-        error = validateUsername(formData.username)
+      case "firstName":
+        error = validateFirstName(formData.firstName)
+        break
+      case "lastName":
+        error = validateLastName(formData.lastName)
         break
       case "dateOfBirth":
         error = validateDateOfBirth(formData.dateOfBirth)
@@ -104,8 +99,11 @@ export function SignupForm() {
       const passwordError = validatePassword(formData.password)
       if (passwordError) clientErrors.password = passwordError
 
-      const usernameError = validateUsername(formData.username)
-      if (usernameError) clientErrors.username = usernameError
+      const firstNameError = validateFirstName(formData.firstName)
+      if (firstNameError) clientErrors.firstName = firstNameError
+
+      const lastNameError = validateLastName(formData.lastName)
+      if (lastNameError) clientErrors.lastName = lastNameError
 
       const dobError = validateDateOfBirth(formData.dateOfBirth)
       if (dobError) clientErrors.dateOfBirth = dobError
@@ -130,7 +128,8 @@ export function SignupForm() {
           password: formData.password,
           dateOfBirth: formData.dateOfBirth,
           sex: formData.sex,
-          username: formData.username,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
         }),
       })
 
@@ -183,7 +182,11 @@ export function SignupForm() {
             </div>
             <h3 className="text-2xl font-bold text-green-600 mb-2">Account Created Successfully! 🎉</h3>
             <p className="text-muted-foreground mb-4">
-              Welcome to TrustVerify, <strong>{successData?.username}</strong>!
+              Welcome to TrustVerify,{" "}
+              <strong>
+                {successData?.firstName} {successData?.lastName}
+              </strong>
+              !
             </p>
             <div className="bg-muted p-4 rounded-lg mb-6 text-sm">
               <div className="flex items-center gap-2 mb-2">
@@ -192,10 +195,10 @@ export function SignupForm() {
               </div>
               <div className="text-left space-y-1">
                 <p>
-                  <strong>Email:</strong> {successData?.email}
+                  <strong>Name:</strong> {successData?.firstName} {successData?.lastName}
                 </p>
                 <p>
-                  <strong>Username:</strong> {successData?.username}
+                  <strong>Email:</strong> {successData?.email}
                 </p>
                 <p>
                   <strong>Age:</strong> {successData?.age} years old
@@ -216,8 +219,8 @@ export function SignupForm() {
                     password: "",
                     dateOfBirth: "",
                     sex: "",
-                    age: 0,
-                    username: "",
+                    firstName: "",
+                    lastName: "",
                   })
                   setErrors({})
                   setTouched({})
@@ -251,6 +254,64 @@ export function SignupForm() {
               </p>
             </div>
           )}
+
+          {/* First Name Field */}
+          <div className="space-y-2">
+            <Label htmlFor="firstName" className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              First Name *
+            </Label>
+            <Input
+              id="firstName"
+              type="text"
+              placeholder="Enter your first name"
+              value={formData.firstName}
+              onChange={(e) => handleFieldChange("firstName", e.target.value)}
+              onBlur={() => handleBlur("firstName")}
+              className={errors.firstName ? "border-red-500 focus:border-red-500" : ""}
+            />
+            {errors.firstName && (
+              <p className="text-red-500 text-sm flex items-center gap-1">
+                <XCircle className="w-3 h-3" />
+                {errors.firstName}
+              </p>
+            )}
+            {!errors.firstName && formData.firstName && touched.firstName && (
+              <p className="text-green-500 text-sm flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                First name looks good
+              </p>
+            )}
+          </div>
+
+          {/* Last Name Field */}
+          <div className="space-y-2">
+            <Label htmlFor="lastName" className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Last Name *
+            </Label>
+            <Input
+              id="lastName"
+              type="text"
+              placeholder="Enter your last name"
+              value={formData.lastName}
+              onChange={(e) => handleFieldChange("lastName", e.target.value)}
+              onBlur={() => handleBlur("lastName")}
+              className={errors.lastName ? "border-red-500 focus:border-red-500" : ""}
+            />
+            {errors.lastName && (
+              <p className="text-red-500 text-sm flex items-center gap-1">
+                <XCircle className="w-3 h-3" />
+                {errors.lastName}
+              </p>
+            )}
+            {!errors.lastName && formData.lastName && touched.lastName && (
+              <p className="text-green-500 text-sm flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                Last name looks good
+              </p>
+            )}
+          </div>
 
           {/* Email Field */}
           <div className="space-y-2">
@@ -338,35 +399,6 @@ export function SignupForm() {
             )}
           </div>
 
-          {/* Username Field */}
-          <div className="space-y-2">
-            <Label htmlFor="username" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Username *
-            </Label>
-            <Input
-              id="username"
-              type="text"
-              placeholder="Choose a unique username"
-              value={formData.username}
-              onChange={(e) => handleFieldChange("username", e.target.value)}
-              onBlur={() => handleBlur("username")}
-              className={errors.username ? "border-red-500 focus:border-red-500" : ""}
-            />
-            {errors.username && (
-              <p className="text-red-500 text-sm flex items-center gap-1">
-                <XCircle className="w-3 h-3" />
-                {errors.username}
-              </p>
-            )}
-            {!errors.username && formData.username && touched.username && (
-              <p className="text-green-500 text-sm flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                Username looks good
-              </p>
-            )}
-          </div>
-
           {/* Date of Birth Field */}
           <div className="space-y-2">
             <Label htmlFor="dateOfBirth" className="flex items-center gap-2">
@@ -413,23 +445,6 @@ export function SignupForm() {
                 {errors.sex}
               </p>
             )}
-          </div>
-
-          {/* Age Display */}
-          <div className="space-y-2">
-            <Label>Age</Label>
-            <div className="p-3 bg-muted rounded-md border">
-              <span className="text-sm">
-                {formData.age > 0 ? (
-                  <span className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    {formData.age} years old
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">Enter date of birth to calculate age</span>
-                )}
-              </span>
-            </div>
           </div>
 
           {/* Submit Button */}
