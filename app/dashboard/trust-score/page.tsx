@@ -1,123 +1,240 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Shield, Info, AlertTriangle } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Shield, AlertCircle, CheckCircle, XCircle } from "lucide-react"
+import { getCurrentUserTrustScoreData, type TrustScoreItem } from "@/lib/trustscore-service"
+
+interface TrustScoreState {
+  loading: boolean
+  data: TrustScoreItem[]
+  overallScore: number
+  error: string | null
+  source: "user" | "default" | "fallback" | null
+}
+
+function TrustScoreTable({ data }: { data: TrustScoreItem[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-b border-border">
+            <th className="text-left py-4 px-6 font-semibold text-foreground bg-muted/50">VERIFICATION-DETAILS</th>
+            <th className="text-left py-4 px-6 font-semibold text-foreground bg-muted/50">VERIFICATION-STATUS</th>
+            <th className="text-left py-4 px-6 font-semibold text-foreground bg-muted/50">TRUSCORE</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((item, index) => (
+            <tr key={index} className="border-b border-border hover:bg-muted/30 transition-colors">
+              <td className="py-4 px-6 font-medium text-foreground">{item.detail}</td>
+              <td className="py-4 px-6">
+                <Badge
+                  variant={item.isVerified ? "default" : "destructive"}
+                  className={`font-medium ${
+                    item.isVerified
+                      ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-100"
+                      : "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-100"
+                  }`}
+                >
+                  {item.isVerified ? <CheckCircle className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
+                  {item.status}
+                </Badge>
+              </td>
+              <td className="py-4 px-6">
+                <span
+                  className={`text-2xl font-bold ${
+                    item.score === 1 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {item.score}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function TrustScoreTableSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-4 py-4 px-6 bg-muted/50">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-4 w-20" />
+      </div>
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="grid grid-cols-3 gap-4 py-4 px-6 border-b border-border">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-6 w-28" />
+          <Skeleton className="h-6 w-8" />
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function TrustScorePage() {
-  const trustScore = 78
-  const scoreBreakdown = [
-    { category: "Education Verification", score: 30, maxScore: 30, status: "verified" },
-    { category: "Employment Verification", score: 30, maxScore: 30, status: "verified" },
-    { category: "Background Check", score: 10, maxScore: 30, status: "pending" },
-    { category: "Profile Completeness", score: 8, maxScore: 10, status: "partial" },
-  ]
+  const [state, setState] = useState<TrustScoreState>({
+    loading: true,
+    data: [],
+    overallScore: 0,
+    error: null,
+    source: null,
+  })
+
+  useEffect(() => {
+    async function loadTrustScoreData() {
+      try {
+        setState((prev) => ({ ...prev, loading: true, error: null }))
+
+        const result = await getCurrentUserTrustScoreData()
+
+        if (result.success && result.data) {
+          setState({
+            loading: false,
+            data: result.data,
+            overallScore: result.overallScore || 0,
+            error: null,
+            source: result.source || null,
+          })
+        } else {
+          setState((prev) => ({
+            ...prev,
+            loading: false,
+            error: result.error || "Failed to load trust score data",
+          }))
+        }
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: "An unexpected error occurred",
+        }))
+      }
+    }
+
+    loadTrustScoreData()
+  }, [])
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Trust Score</h1>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="md:col-span-2 premium-card">
-          <CardHeader>
-            <CardTitle>Your Trust Score</CardTitle>
-            <CardDescription>
-              Your trust score is calculated based on verified information and profile completeness
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex flex-col items-center justify-center space-y-2">
-              <div className="relative flex h-40 w-40 items-center justify-center rounded-full border-8 border-primary/20">
-                <div className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-primary-100 to-primary-200">
-                  <Shield className="h-12 w-12 text-primary" />
-                </div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform text-center">
-                  <span className="text-4xl font-bold premium-gradient-text">{trustScore}</span>
-                  <span className="text-xl text-muted-foreground">/100</span>
-                </div>
-              </div>
+      {/* Overall Score Card */}
+      <Card className="premium-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            Your Trust Score Overview
+          </CardTitle>
+          <CardDescription>Your trust score is calculated based on verified personal information</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {state.loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Skeleton className="h-16 w-32" />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Your profile has a good trust score</p>
+                <div
+                  className={`text-6xl font-bold ${
+                    state.overallScore >= 70
+                      ? "text-green-600 dark:text-green-400"
+                      : state.overallScore >= 40
+                        ? "text-yellow-600 dark:text-yellow-400"
+                        : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {state.overallScore}%
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">Overall Trust Score</p>
               </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
 
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Score Breakdown</h3>
-              {scoreBreakdown.map((item, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span>{item.category}</span>
-                      {item.status === "pending" && <AlertTriangle className="h-4 w-4 text-secondary" />}
-                    </div>
-                    <span className="text-sm font-medium">
-                      {item.score}/{item.maxScore}
-                    </span>
-                  </div>
-                  <Progress
-                    value={(item.score / item.maxScore) * 100}
-                    className={
-                      item.status === "verified"
-                        ? "bg-primary-100"
-                        : item.status === "pending"
-                          ? "bg-secondary-100"
-                          : "bg-muted"
-                    }
-                  />
-                </div>
-              ))}
+      {/* Trust Score Table */}
+      <Card className="premium-card">
+        <CardHeader>
+          <CardTitle>Trust Score Details</CardTitle>
+          <CardDescription>Detailed breakdown of your verification status and scores</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {state.loading ? (
+            <TrustScoreTableSkeleton />
+          ) : state.error ? (
+            <div className="p-6">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{state.error}</AlertDescription>
+              </Alert>
+            </div>
+          ) : (
+            <TrustScoreTable data={state.data} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Data Source Info */}
+      {state.source && !state.loading && (
+        <Card className="border-dashed">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <AlertCircle className="h-4 w-4" />
+              <span>
+                Data source:{" "}
+                {state.source === "user"
+                  ? "Your personal data"
+                  : state.source === "default"
+                    ? "Default template"
+                    : "System fallback"}
+              </span>
             </div>
           </CardContent>
         </Card>
+      )}
 
+      {/* Information Cards */}
+      <div className="grid gap-4 md:grid-cols-2">
         <Card className="premium-card">
           <CardHeader>
             <CardTitle>How Trust Score Works</CardTitle>
-            <CardDescription>Understanding how your trust score is calculated</CardDescription>
+            <CardDescription>Understanding your trust score calculation</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-start gap-2">
-              <div className="rounded-full bg-primary-50 p-1 mt-0.5">
-                <Info className="h-4 w-4 text-primary" />
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-green-100 p-1 mt-0.5 dark:bg-green-900">
+                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h4 className="font-semibold">Verified = 1 Point</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Each verified detail contributes 1 point to your trust score.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold">Education Verification (30%)</h4>
-                <p className="text-sm text-muted-foreground">
-                  Verification of your educational qualifications and certificates.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="rounded-full bg-primary-50 p-1 mt-0.5">
-                <Info className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-semibold">Employment Verification (30%)</h4>
-                <p className="text-sm text-muted-foreground">
-                  Verification of your employment history and current position.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="rounded-full bg-primary-50 p-1 mt-0.5">
-                <Info className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-semibold">Background Check (30%)</h4>
-                <p className="text-sm text-muted-foreground">
-                  Verification of your identity and background information.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="rounded-full bg-primary-50 p-1 mt-0.5">
-                <Info className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-semibold">Profile Completeness (10%)</h4>
-                <p className="text-sm text-muted-foreground">
-                  How complete your profile information is, including photos and personal details.
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-red-100 p-1 mt-0.5 dark:bg-red-900">
+                  <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h4 className="font-semibold">Not Verified = 0 Points</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Unverified details contribute 0 points to your trust score.
+                  </p>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -129,29 +246,25 @@ export default function TrustScorePage() {
             <CardDescription>Advantages of having a high trust score</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg border border-border/40 p-3 bg-card hover:shadow-premium-sm transition-all duration-300">
-              <h4 className="font-semibold">Enhanced Credibility</h4>
-              <p className="text-sm text-muted-foreground">
-                A high trust score enhances your credibility when sharing with potential partners.
-              </p>
-            </div>
-            <div className="rounded-lg border border-border/40 p-3 bg-card hover:shadow-premium-sm transition-all duration-300">
-              <h4 className="font-semibold">More Responses</h4>
-              <p className="text-sm text-muted-foreground">
-                Users with verified profiles and high trust scores receive more positive responses.
-              </p>
-            </div>
-            <div className="rounded-lg border border-border/40 p-3 bg-card hover:shadow-premium-sm transition-all duration-300">
-              <h4 className="font-semibold">Trust Badge</h4>
-              <p className="text-sm text-muted-foreground">
-                Profiles with scores above 90 receive a special trust badge visible to all recipients.
-              </p>
-            </div>
-            <div className="rounded-lg border border-border/40 p-3 bg-card hover:shadow-premium-sm transition-all duration-300">
-              <h4 className="font-semibold">Premium Features</h4>
-              <p className="text-sm text-muted-foreground">
-                Unlock additional sharing features when you achieve a trust score of 85 or higher.
-              </p>
+            <div className="space-y-3">
+              <div className="rounded-lg border border-border/40 p-3 bg-card hover:shadow-premium-sm transition-all duration-300">
+                <h4 className="font-semibold">Enhanced Credibility</h4>
+                <p className="text-sm text-muted-foreground">
+                  Higher trust scores increase your credibility with potential matches.
+                </p>
+              </div>
+              <div className="rounded-lg border border-border/40 p-3 bg-card hover:shadow-premium-sm transition-all duration-300">
+                <h4 className="font-semibold">Better Visibility</h4>
+                <p className="text-sm text-muted-foreground">
+                  Verified profiles receive priority in search results and recommendations.
+                </p>
+              </div>
+              <div className="rounded-lg border border-border/40 p-3 bg-card hover:shadow-premium-sm transition-all duration-300">
+                <h4 className="font-semibold">Trust Badge</h4>
+                <p className="text-sm text-muted-foreground">
+                  Achieve 100% verification to unlock a special trust badge.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

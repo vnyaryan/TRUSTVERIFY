@@ -1,16 +1,12 @@
 {
-    "document": {
-	
-		  "pan_card": "verified",
-		  "aadhaar_card": "pending",
-		  "passport": "not_verified"
-		
-
-    },
-    "trustscore": {
-        "name": "verified",
-        "photo": "not_verified",
-        "phone_number": "verified",
-
-    }
+  "document": {
+    "aadhaar_card": "verified",
+    "pan_card": "verified",
+    "passport": "pending"
+  },
+  "trustscore": {
+    "name": "verified",
+    "photo": "verified",
+    "phone_number": "not_verified"
+  }
 }

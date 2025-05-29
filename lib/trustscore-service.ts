@@ -1,15 +1,16 @@
 import { getCurrentUser } from "./auth"
 
-export interface DocumentData {
-  aadhaar_card?: string
-  pan_card?: string
-  passport?: string
+export interface TrustScoreData {
+  name?: string
+  photo?: string
+  phone_number?: string
   [key: string]: string | undefined
 }
 
-export interface VerificationItem {
-  document: string
+export interface TrustScoreItem {
+  detail: string
   status: string
+  score: number
   isVerified: boolean
 }
 
@@ -19,15 +20,12 @@ export interface VerificationItem {
  * @returns Sanitized user ID or null if invalid
  */
 function sanitizeUserId(userId: number | string): string | null {
-  // Convert to string and validate it's a positive integer
   const userIdStr = String(userId)
 
-  // Check if it's a valid positive integer
   if (!/^\d+$/.test(userIdStr) || Number.parseInt(userIdStr) <= 0) {
     return null
   }
 
-  // Additional safety check for reasonable range (1 to 999999)
   const numericId = Number.parseInt(userIdStr)
   if (numericId < 1 || numericId > 999999) {
     return null
@@ -37,48 +35,36 @@ function sanitizeUserId(userId: number | string): string | null {
 }
 
 /**
- * Maps JSON status values to display format for documents (3 states)
+ * Maps JSON status values to display format for trustscore (only 2 states)
  * @param status - Raw status from JSON
- * @returns Standardized status
+ * @returns Standardized status and score
  */
-function normalizeDocumentStatus(status: string): { status: string; isVerified: boolean } {
+function normalizeTrustScoreStatus(status: string): {
+  status: string
+  isVerified: boolean
+  score: number
+} {
   const normalizedStatus = status.toLowerCase().trim()
 
   switch (normalizedStatus) {
     case "verified":
-    case "approved":
-    case "complete":
-      return { status: "VERIFIED", isVerified: true }
-    case "pending":
-    case "processing":
-    case "in_progress":
-      return { status: "PENDING", isVerified: false }
-    case "rejected":
-    case "failed":
-    case "denied":
-      return { status: "REJECTED", isVerified: false }
+      return { status: "VERIFIED", isVerified: true, score: 1 }
     case "not_verified":
-    case "incomplete":
-    case "missing":
     default:
-      return { status: "NOT VERIFIED", isVerified: false }
+      return { status: "NOT VERIFIED", isVerified: false, score: 0 }
   }
 }
 
 /**
- * Maps JSON field names to display names for documents
+ * Maps JSON field names to display names for trustscore
  * @param fieldName - Raw field name from JSON
  * @returns Display name
  */
-function getDocumentDisplayName(fieldName: string): string {
+function getTrustScoreDisplayName(fieldName: string): string {
   const fieldMap: Record<string, string> = {
-    aadhaar_card: "AADHAAR CARD",
-    aadhaard_card: "AADHAAR CARD", // Handle typo in existing data
-    pan_card: "PAN CARD",
-    passport: "PASSPORT",
-    driving_license: "DRIVING LICENSE",
-    voter_id: "VOTER ID",
-    birth_certificate: "BIRTH CERTIFICATE",
+    name: "NAME",
+    photo: "PHOTO",
+    phone_number: "PHONE NUMBER",
   }
 
   return fieldMap[fieldName.toLowerCase()] || fieldName.toUpperCase().replace(/_/g, " ")
@@ -92,24 +78,22 @@ function getDocumentDisplayName(fieldName: string): string {
 async function fetchJsonFile(filePath: string): Promise<any | null> {
   try {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
 
     const response = await fetch(filePath, {
       signal: controller.signal,
-      cache: "default", // Enable browser caching
+      cache: "default",
     })
 
     clearTimeout(timeoutId)
 
     if (!response.ok) {
-      return null // File not found or other error
+      return null
     }
 
-    // Parse JSON with error handling
     try {
       const jsonData = await response.json()
 
-      // Validate JSON structure
       if (!jsonData || typeof jsonData !== "object") {
         return null
       }
@@ -126,43 +110,56 @@ async function fetchJsonFile(filePath: string): Promise<any | null> {
 }
 
 /**
- * Transforms document verification data to UI format
- * @param documentData - Raw document data from JSON
- * @returns Array of verification items for UI display
+ * Transforms trustscore data to UI format
+ * @param trustScoreData - Raw trustscore data from JSON
+ * @returns Array of trustscore items for UI display
  */
-function transformDocumentData(documentData: DocumentData): VerificationItem[] {
-  return Object.entries(documentData)
-    .filter(([_, value]) => typeof value === "string") // Only process string values
+function transformTrustScoreData(trustScoreData: TrustScoreData): TrustScoreItem[] {
+  return Object.entries(trustScoreData)
+    .filter(([_, value]) => typeof value === "string")
     .map(([key, value]) => {
-      const { status, isVerified } = normalizeDocumentStatus(value as string)
+      const { status, isVerified, score } = normalizeTrustScoreStatus(value as string)
       return {
-        document: getDocumentDisplayName(key),
+        detail: getTrustScoreDisplayName(key),
         status,
+        score,
         isVerified,
       }
     })
     .sort((a, b) => {
-      // Sort verified items first, then by document name
+      // Sort verified items first, then by detail name
       if (a.isVerified !== b.isVerified) {
         return a.isVerified ? -1 : 1
       }
-      return a.document.localeCompare(b.document)
+      return a.detail.localeCompare(b.detail)
     })
 }
 
 /**
- * Fetches verification data from JSON file using user ID with fallback to default.json
- * @param userId - Numeric user ID
- * @returns Promise with verification data or error
+ * Calculates overall trust score percentage
+ * @param items - Array of trust score items
+ * @returns Overall percentage score
  */
-export async function fetchVerificationData(userId: number | string): Promise<{
+function calculateOverallScore(items: TrustScoreItem[]): number {
+  if (items.length === 0) return 0
+
+  const totalScore = items.reduce((sum, item) => sum + item.score, 0)
+  return Math.round((totalScore / items.length) * 100)
+}
+
+/**
+ * Fetches trustscore data from JSON file using user ID with fallback to default.json
+ * @param userId - Numeric user ID
+ * @returns Promise with trustscore data or error
+ */
+export async function fetchTrustScoreData(userId: number | string): Promise<{
   success: boolean
-  data?: VerificationItem[]
+  data?: TrustScoreItem[]
+  overallScore?: number
   error?: string
   source?: "user" | "default" | "fallback"
 }> {
   try {
-    // Sanitize user ID for security
     const sanitizedUserId = sanitizeUserId(userId)
     if (!sanitizedUserId) {
       return {
@@ -173,7 +170,7 @@ export async function fetchVerificationData(userId: number | string): Promise<{
 
     // Try to fetch user-specific file first
     const userFilePath = `/data/${sanitizedUserId}.json`
-    console.log(`Attempting to fetch user verification data: ${userFilePath}`)
+    console.log(`Attempting to fetch user trustscore data: ${userFilePath}`)
 
     let jsonData = await fetchJsonFile(userFilePath)
     let source: "user" | "default" | "fallback" = "user"
@@ -190,35 +187,38 @@ export async function fetchVerificationData(userId: number | string): Promise<{
         console.log("Default.json not found, using hardcoded fallback")
         return {
           success: true,
-          data: getDefaultVerificationData(),
+          data: getDefaultTrustScoreData(),
+          overallScore: calculateOverallScore(getDefaultTrustScoreData()),
           source: "fallback",
         }
       }
     }
 
-    // Extract document section from JSON
-    const documentSection = jsonData.document
-    if (!documentSection || typeof documentSection !== "object") {
-      console.log("No document section found, using fallback")
+    // Extract trustscore section from JSON
+    const trustScoreSection = jsonData.trustscore
+    if (!trustScoreSection || typeof trustScoreSection !== "object") {
+      console.log("No trustscore section found, using fallback")
       return {
         success: true,
-        data: getDefaultVerificationData(),
+        data: getDefaultTrustScoreData(),
+        overallScore: calculateOverallScore(getDefaultTrustScoreData()),
         source: "fallback",
       }
     }
 
     // Transform data for UI
-    const verificationItems = transformDocumentData(documentSection)
+    const trustScoreItems = transformTrustScoreData(trustScoreSection)
+    const overallScore = calculateOverallScore(trustScoreItems)
 
     return {
       success: true,
-      data: verificationItems,
+      data: trustScoreItems,
+      overallScore,
       source,
     }
   } catch (error) {
-    console.error("Verification data fetch error:", error)
+    console.error("TrustScore data fetch error:", error)
 
-    // Handle specific error types
     if (error instanceof TypeError && error.message.includes("fetch")) {
       return {
         success: false,
@@ -236,19 +236,21 @@ export async function fetchVerificationData(userId: number | string): Promise<{
     // Return fallback data even on error
     return {
       success: true,
-      data: getDefaultVerificationData(),
+      data: getDefaultTrustScoreData(),
+      overallScore: calculateOverallScore(getDefaultTrustScoreData()),
       source: "fallback",
     }
   }
 }
 
 /**
- * Gets current user's verification data using their numeric user ID
- * @returns Promise with verification data
+ * Gets current user's trustscore data using their numeric user ID
+ * @returns Promise with trustscore data
  */
-export async function getCurrentUserVerificationData(): Promise<{
+export async function getCurrentUserTrustScoreData(): Promise<{
   success: boolean
-  data?: VerificationItem[]
+  data?: TrustScoreItem[]
+  overallScore?: number
   error?: string
   source?: "user" | "default" | "fallback"
 }> {
@@ -261,7 +263,6 @@ export async function getCurrentUserVerificationData(): Promise<{
     }
   }
 
-  // Try to get user ID from user object
   const userId = user.userId || user.numericUserId || user.id
 
   if (!userId) {
@@ -271,26 +272,29 @@ export async function getCurrentUserVerificationData(): Promise<{
     }
   }
 
-  return fetchVerificationData(userId)
+  return fetchTrustScoreData(userId)
 }
 
 /**
- * Default verification data for fallback (hardcoded)
+ * Default trustscore data for fallback (hardcoded)
  */
-export const getDefaultVerificationData = (): VerificationItem[] => [
+export const getDefaultTrustScoreData = (): TrustScoreItem[] => [
   {
-    document: "PAN CARD",
+    detail: "NAME",
     status: "NOT VERIFIED",
+    score: 0,
     isVerified: false,
   },
   {
-    document: "AADHAAR CARD",
+    detail: "PHOTO",
     status: "NOT VERIFIED",
+    score: 0,
     isVerified: false,
   },
   {
-    document: "PASSPORT",
+    detail: "PHONE NUMBER",
     status: "NOT VERIFIED",
+    score: 0,
     isVerified: false,
   },
 ]
