@@ -15,7 +15,7 @@ export default function SharePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [userId, setUserId] = useState<string>("1") // Default user ID, should come from auth
+  const [userId, setUserId] = useState<string>("")
 
   // Email inputs
   const [email1, setEmail1] = useState("")
@@ -27,8 +27,30 @@ export default function SharePage() {
   const [phoneEmail1, setPhoneEmail1] = useState(false)
   const [phoneEmail2, setPhoneEmail2] = useState(false)
 
+  useEffect(() => {
+    // Get current user from localStorage (matching your auth system)
+    const getCurrentUserId = () => {
+      if (typeof window === "undefined") return ""
+
+      const userData = localStorage.getItem("user")
+      if (!userData) return ""
+
+      try {
+        const user = JSON.parse(userData)
+        return user.email || "" // Use email as user ID
+      } catch {
+        return ""
+      }
+    }
+
+    const currentUserId = getCurrentUserId()
+    setUserId(currentUserId)
+  }, [])
+
   // Load existing preferences
   useEffect(() => {
+    if (!userId) return // Don't load if no user ID
+
     async function loadPreferences() {
       try {
         setLoading(true)
@@ -158,6 +180,21 @@ export default function SharePage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!userId) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Share Trust Details</h1>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">Loading user information...</div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
