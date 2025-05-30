@@ -17,11 +17,12 @@ export async function GET(request: NextRequest) {
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'trust_connections'
+      ORDER BY ordinal_position
     `
 
     console.log("Available columns in trust_connections:", schemaQuery)
 
-    // Now use the correct column names based on the schema
+    // Query without the is_active column since it doesn't exist
     const result = await sql`
       SELECT 
         id,
@@ -29,14 +30,12 @@ export async function GET(request: NextRequest) {
         recipient_email AS "recipientEmail", 
         share_name AS "shareName",
         share_phone AS "sharePhone",
-        is_active AS "isActive",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM 
         trust_connections
       WHERE 
         recipient_email = ${userEmail}
-        AND is_active = true
       ORDER BY 
         updated_at DESC
     `
@@ -65,7 +64,6 @@ export async function GET(request: NextRequest) {
         success: false,
         error: "Failed to fetch trust connections",
         details: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 },
     )
