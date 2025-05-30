@@ -10,7 +10,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "User email is required" }, { status: 400 })
     }
 
-    console.log("Fetching trust connections for:", userEmail)
+    // Extract email if it's a JSON object
+    let email = userEmail
+    try {
+      if (userEmail.startsWith("{")) {
+        const userObj = JSON.parse(userEmail)
+        email = userObj.email || userEmail
+      }
+    } catch (e) {
+      // If parsing fails, use the original value
+      console.log("Failed to parse userEmail as JSON, using as-is:", e)
+    }
+
+    console.log("Fetching trust connections for email:", email)
 
     // First, let's check the actual schema of the trust_connections table
     const schemaQuery = await sql`
@@ -35,7 +47,7 @@ export async function GET(request: NextRequest) {
       FROM 
         trust_connections
       WHERE 
-        recipient_email = ${userEmail}
+        recipient_email = ${email}
       ORDER BY 
         updated_at DESC
     `

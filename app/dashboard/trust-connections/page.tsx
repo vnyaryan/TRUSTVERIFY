@@ -21,9 +21,25 @@ export default function TrustConnectionsPage() {
   // Get current user email from localStorage or auth context
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const userEmail = localStorage.getItem("userEmail") || localStorage.getItem("user") || "raj@gmail.com"
-      setCurrentUser(userEmail)
-      console.log("Current user set to:", userEmail)
+      try {
+        // Try to get user from localStorage
+        const userStr = localStorage.getItem("user")
+        if (userStr) {
+          // Parse the user object and extract just the email
+          const userObj = JSON.parse(userStr)
+          const email = userObj.email || "raj@gmail.com"
+          setCurrentUser(email)
+          console.log("Current user email set to:", email)
+        } else {
+          // Fallback to direct email
+          const userEmail = localStorage.getItem("userEmail") || "raj@gmail.com"
+          setCurrentUser(userEmail)
+          console.log("Current user email set to:", userEmail)
+        }
+      } catch (err) {
+        console.error("Error parsing user from localStorage:", err)
+        setCurrentUser("raj@gmail.com") // Fallback
+      }
     }
   }, [])
 
@@ -36,9 +52,12 @@ export default function TrustConnectionsPage() {
         setLoading(true)
         setError(null)
 
-        console.log("Fetching connections for user:", currentUser)
+        // Make sure we're just using the email string, not the full user object
+        const userEmail = typeof currentUser === "object" ? (currentUser as any).email || "raj@gmail.com" : currentUser
 
-        const response = await fetch(`/api/trust-connections?userEmail=${encodeURIComponent(currentUser)}`)
+        console.log("Fetching connections for user email:", userEmail)
+
+        const response = await fetch(`/api/trust-connections?userEmail=${encodeURIComponent(userEmail)}`)
 
         if (!response.ok) {
           const errorText = await response.text()
@@ -78,7 +97,9 @@ export default function TrustConnectionsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Trust Connections</h1>
         <p className="text-muted-foreground">View trust details shared with you by other users</p>
-        <p className="text-xs text-muted-foreground mt-1">Current user: {currentUser}</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Current user: {typeof currentUser === "object" ? JSON.stringify(currentUser) : currentUser}
+        </p>
       </div>
 
       <Card>
