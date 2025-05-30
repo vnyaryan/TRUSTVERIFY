@@ -14,18 +14,27 @@ export interface SharingHistory {
   userId: string
   recipientEmail: string
   sharedData: {
-    name?: boolean
-    phone?: boolean
+    name?: string
+    phone?: string
   }
   sharedAt?: Date
   status: "sent" | "failed" | "pending"
 }
 
-export interface SharingFormState {
-  recipients: {
-    [email: string]: {
-      shareName: boolean
-      sharePhone: boolean
-    }
-  }
+export interface SharingFormData {
+  recipientEmail: string
+  shareName: boolean
+  sharePhone: boolean
+}
+
+export interface LocalStorageCache {
+  preferences: SharingPreference[]
+  lastSync: string
+}
+
+export interface ApiResponse<T> {
+  success: boolean
+  data?: T
+  error?: string
+  message?: string
 }
