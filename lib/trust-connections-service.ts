@@ -18,7 +18,7 @@ export class TrustConnectionsService {
       const result = await sql`
         SELECT 
           tc.id,
-          tc.user_id AS "senderEmail",
+          tc.sender_email AS "senderEmail",
           tc.share_name AS "shareName",
           tc.share_phone AS "sharePhone",
           tc.created_at AS "createdAt",
@@ -27,7 +27,6 @@ export class TrustConnectionsService {
           trust_connections tc
         WHERE 
           tc.recipient_email = ${recipientEmail}
-          AND tc.is_active = true
         ORDER BY 
           tc.updated_at DESC
       `
