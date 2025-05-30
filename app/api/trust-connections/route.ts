@@ -12,14 +12,24 @@ export async function GET(request: NextRequest) {
 
     console.log("Fetching trust connections for:", userEmail)
 
-    // Use the correct column names from the database schema
+    // First, let's check the actual schema of the trust_connections table
+    const schemaQuery = await sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'trust_connections'
+    `
+
+    console.log("Available columns in trust_connections:", schemaQuery)
+
+    // Now use the correct column names based on the schema
     const result = await sql`
       SELECT 
         id,
-        user_id AS "senderEmail",
+        sender_email AS "senderEmail",
         recipient_email AS "recipientEmail", 
         share_name AS "shareName",
         share_phone AS "sharePhone",
+        is_active AS "isActive",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM 
@@ -55,6 +65,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: "Failed to fetch trust connections",
         details: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 },
     )
