@@ -3,9 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Filter, SortDesc } from "lucide-react"
 
 // Define the interface for trust connections
 interface TrustConnection {
@@ -18,9 +16,6 @@ interface TrustConnection {
 export default function TrustConnectionsPage() {
   const [connections, setConnections] = useState<TrustConnection[]>([])
   const [loading, setLoading] = useState(true)
-  const [sortBy, setSortBy] = useState("recent")
-  const [filterBy, setFilterBy] = useState("all")
-  const [searchQuery, setSearchQuery] = useState("")
 
   // Fetch connections (mock data for now)
   useEffect(() => {
@@ -49,43 +44,6 @@ export default function TrustConnectionsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Trust Connections</h1>
         <p className="text-muted-foreground">View trust details shared with you by other users</p>
-      </div>
-
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by email..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className="flex gap-2">
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[160px]">
-              <SortDesc className="mr-2 h-4 w-4" />
-              <span>Sort by</span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recent">Most Recent</SelectItem>
-              <SelectItem value="email">Email</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterBy} onValueChange={setFilterBy}>
-            <SelectTrigger className="w-[160px]">
-              <Filter className="mr-2 h-4 w-4" />
-              <span>Filter</span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Connections</SelectItem>
-              <SelectItem value="name">With Name</SelectItem>
-              <SelectItem value="phone">With Phone</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <Card>
