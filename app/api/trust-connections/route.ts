@@ -24,17 +24,20 @@ export async function GET(request: NextRequest) {
 
     console.log("Fetching trust connections for email:", email)
 
-    // First, let's check the actual schema of the trust_connections table
-    const schemaQuery = await sql`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'trust_connections'
-      ORDER BY ordinal_position
+    // Let's first check what data exists in the table
+    const allData = await sql`
+      SELECT * FROM trust_connections
     `
+    console.log("All data in trust_connections table:", allData)
 
-    console.log("Available columns in trust_connections:", schemaQuery)
+    // Check specifically for raj@gmail.com as recipient
+    const rajData = await sql`
+      SELECT * FROM trust_connections 
+      WHERE recipient_email = 'raj@gmail.com'
+    `
+    console.log("Data for raj@gmail.com as recipient:", rajData)
 
-    // Query without the is_active column since it doesn't exist
+    // Now run our main query
     const result = await sql`
       SELECT 
         id,
@@ -52,7 +55,7 @@ export async function GET(request: NextRequest) {
         updated_at DESC
     `
 
-    console.log("Query result:", result)
+    console.log("Main query result for email", email, ":", result)
 
     // Transform the data to match the expected format
     const connections = result.map((row: any) => ({
@@ -64,10 +67,18 @@ export async function GET(request: NextRequest) {
       updatedAt: row.updatedAt,
     }))
 
+    console.log("Transformed connections:", connections)
+
     return NextResponse.json({
       success: true,
       data: connections,
       count: connections.length,
+      debug: {
+        searchedEmail: email,
+        originalParam: userEmail,
+        allDataCount: allData.length,
+        rajDataCount: rajData.length,
+      },
     })
   } catch (error) {
     console.error("API error:", error)
