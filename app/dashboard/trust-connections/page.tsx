@@ -5,10 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-// Define the interface for trust connections
 interface TrustConnection {
   id: number
-  email: string
+  senderEmail: string
   shareName: boolean
   sharePhone: boolean
 }
@@ -17,47 +16,54 @@ export default function TrustConnectionsPage() {
   const [connections, setConnections] = useState<TrustConnection[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentUser, setCurrentUser] = useState<string>("")
 
-  // Get current user email (in real app, this would come from auth context)
-  const getCurrentUserEmail = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("userEmail") || "vny.aryan@gmail.com"
-    }
-    return "vny.aryan@gmail.com"
-  }
-
-  // Fetch real connections from database
+  // Get current user email from localStorage or auth context
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userEmail = localStorage.getItem("userEmail") || localStorage.getItem("user") || "raj@gmail.com"
+      setCurrentUser(userEmail)
+      console.log("Current user set to:", userEmail)
+    }
+  }, [])
+
+  // Fetch connections when user is set
+  useEffect(() => {
+    if (!currentUser) return
+
     const fetchConnections = async () => {
       try {
         setLoading(true)
         setError(null)
 
-        const userEmail = getCurrentUserEmail()
-        const response = await fetch(`/api/trust-connections?userEmail=${encodeURIComponent(userEmail)}`)
+        console.log("Fetching connections for user:", currentUser)
+
+        const response = await fetch(`/api/trust-connections?userEmail=${encodeURIComponent(currentUser)}`)
 
         if (!response.ok) {
-          throw new Error("Failed to fetch trust connections")
+          const errorText = await response.text()
+          console.error("Response not ok:", response.status, errorText)
+          throw new Error(`HTTP ${response.status}: ${errorText}`)
         }
 
         const result = await response.json()
+        console.log("API response:", result)
 
         if (result.success) {
-          // Transform the data to match our interface
           const transformedConnections = result.data.map((conn: any) => ({
             id: conn.id,
-            email: conn.senderEmail,
+            senderEmail: conn.senderEmail,
             shareName: conn.shareName,
             sharePhone: conn.sharePhone,
           }))
           setConnections(transformedConnections)
+          console.log("Connections set:", transformedConnections)
         } else {
           throw new Error(result.error || "Failed to load connections")
         }
       } catch (err) {
         console.error("Error fetching connections:", err)
         setError(err instanceof Error ? err.message : "An error occurred")
-        // Set empty array on error
         setConnections([])
       } finally {
         setLoading(false)
@@ -65,13 +71,14 @@ export default function TrustConnectionsPage() {
     }
 
     fetchConnections()
-  }, [])
+  }, [currentUser])
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Trust Connections</h1>
         <p className="text-muted-foreground">View trust details shared with you by other users</p>
+        <p className="text-xs text-muted-foreground mt-1">Current user: {currentUser}</p>
       </div>
 
       <Card>
@@ -85,8 +92,8 @@ export default function TrustConnectionsPage() {
             </div>
           ) : error ? (
             <div className="text-center py-8">
-              <p className="text-red-500 mb-2">{error}</p>
-              <p className="text-muted-foreground text-sm">No trust connections found or unable to load data.</p>
+              <p className="text-red-500 mb-2">Error: {error}</p>
+              <p className="text-muted-foreground text-sm">Please check the console for more details.</p>
             </div>
           ) : connections.length === 0 ? (
             <div className="text-center py-8">
@@ -110,7 +117,7 @@ export default function TrustConnectionsPage() {
                     <TableCell className="border border-gray-200"></TableCell>
                     {connections.map((connection) => (
                       <TableCell key={connection.id} className="border border-gray-200 p-2">
-                        <Input value={connection.email} readOnly className="bg-gray-50/50 border-gray-200" />
+                        <Input value={connection.senderEmail} readOnly className="bg-gray-50/50 border-gray-200" />
                       </TableCell>
                     ))}
                   </TableRow>

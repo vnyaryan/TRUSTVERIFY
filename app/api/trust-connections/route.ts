@@ -1,25 +1,62 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { TrustConnectionsService, type TrustConnectionsFilter } from "@/lib/trust-connections-service"
+import { sql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   try {
-    // In a real app, you would get the user from the session
-    // For now, we'll use a query parameter or default
     const searchParams = request.nextUrl.searchParams
-    const userEmail = searchParams.get("userEmail") || "vny.aryan@gmail.com"
+    const userEmail = searchParams.get("userEmail")
 
-    // Parse filter parameters
-    const sortBy = (searchParams.get("sortBy") as TrustConnectionsFilter["sortBy"]) || "recent"
-    const filterBy = (searchParams.get("filterBy") as TrustConnectionsFilter["filterBy"]) || "all"
-    const search = searchParams.get("search") || undefined
+    if (!userEmail) {
+      return NextResponse.json({ success: false, error: "User email is required" }, { status: 400 })
+    }
 
-    const filter: TrustConnectionsFilter = { sortBy, filterBy, search }
+    console.log("Fetching trust connections for:", userEmail)
 
-    const connections = await TrustConnectionsService.getConnectionsByRecipient(userEmail, filter)
+    // Query the trust_connections table directly
+    const result = await sql`
+      SELECT 
+        id,
+        user_id AS "senderEmail",
+        recipient_email AS "recipientEmail", 
+        share_name AS "shareName",
+        share_phone AS "sharePhone",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      FROM 
+        trust_connections
+      WHERE 
+        recipient_email = ${userEmail}
+        AND is_active = true
+      ORDER BY 
+        updated_at DESC
+    `
 
-    return NextResponse.json({ success: true, data: connections })
+    console.log("Query result:", result)
+
+    // Transform the data to match the expected format
+    const connections = result.map((row: any) => ({
+      id: row.id,
+      senderEmail: row.senderEmail,
+      shareName: row.shareName,
+      sharePhone: row.sharePhone,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }))
+
+    return NextResponse.json({
+      success: true,
+      data: connections,
+      count: connections.length,
+    })
   } catch (error) {
     console.error("API error:", error)
-    return NextResponse.json({ success: false, error: "Failed to fetch trust connections" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch trust connections",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
