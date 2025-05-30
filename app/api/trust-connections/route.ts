@@ -12,20 +12,11 @@ export async function GET(request: NextRequest) {
 
     console.log("Fetching trust connections for:", userEmail)
 
-    // First, let's check what columns actually exist in the table
-    const schemaCheck = await sql`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'trust_connections'
-    `
-
-    console.log("Available columns:", schemaCheck)
-
-    // Query using the correct column names based on your database screenshot
+    // Use the correct column names from the database schema
     const result = await sql`
       SELECT 
         id,
-        sender_email AS "senderEmail",
+        user_id AS "senderEmail",
         recipient_email AS "recipientEmail", 
         share_name AS "shareName",
         share_phone AS "sharePhone",
@@ -35,6 +26,7 @@ export async function GET(request: NextRequest) {
         trust_connections
       WHERE 
         recipient_email = ${userEmail}
+        AND is_active = true
       ORDER BY 
         updated_at DESC
     `
