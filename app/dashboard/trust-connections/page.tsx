@@ -16,27 +16,55 @@ interface TrustConnection {
 export default function TrustConnectionsPage() {
   const [connections, setConnections] = useState<TrustConnection[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Fetch connections (mock data for now)
+  // Get current user email (in real app, this would come from auth context)
+  const getCurrentUserEmail = () => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("userEmail") || "vny.aryan@gmail.com"
+    }
+    return "vny.aryan@gmail.com"
+  }
+
+  // Fetch real connections from database
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setConnections([
-        {
-          id: 1,
-          email: "raj@gmail.com",
-          shareName: false,
-          sharePhone: true,
-        },
-        {
-          id: 2,
-          email: "vny.aryan1@gmail.com",
-          shareName: false,
-          sharePhone: true,
-        },
-      ])
-      setLoading(false)
-    }, 1000)
+    const fetchConnections = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const userEmail = getCurrentUserEmail()
+        const response = await fetch(`/api/trust-connections?userEmail=${encodeURIComponent(userEmail)}`)
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch trust connections")
+        }
+
+        const result = await response.json()
+
+        if (result.success) {
+          // Transform the data to match our interface
+          const transformedConnections = result.data.map((conn: any) => ({
+            id: conn.id,
+            email: conn.senderEmail,
+            shareName: conn.shareName,
+            sharePhone: conn.sharePhone,
+          }))
+          setConnections(transformedConnections)
+        } else {
+          throw new Error(result.error || "Failed to load connections")
+        }
+      } catch (err) {
+        console.error("Error fetching connections:", err)
+        setError(err instanceof Error ? err.message : "An error occurred")
+        // Set empty array on error
+        setConnections([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchConnections()
   }, [])
 
   return (
@@ -54,6 +82,15 @@ export default function TrustConnectionsPage() {
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="text-red-500 mb-2">{error}</p>
+              <p className="text-muted-foreground text-sm">No trust connections found or unable to load data.</p>
+            </div>
+          ) : connections.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No one has shared their trust details with you yet.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
