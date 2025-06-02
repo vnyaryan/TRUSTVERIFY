@@ -1,9 +1,8 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Heart, Users, User, Phone, Mail, Calendar } from "lucide-react"
+import { Heart, Users, User } from "lucide-react"
 import Image from "next/image"
 
 export default function Talk2AngelPage() {
@@ -88,85 +87,6 @@ export default function Talk2AngelPage() {
                 <span>Family and child planning guidance</span>
               </li>
             </ul>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Detailed Information */}
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Why Choose Talk2Angel?</CardTitle>
-            <CardDescription>Our experienced counselors specialize in premarital guidance</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold mb-2">For Individuals</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Prepare yourself mentally and emotionally for marriage with personalized guidance.
-                </p>
-                <ul className="space-y-1 text-sm">
-                  <li>• Self-awareness and personal growth</li>
-                  <li>• Communication skills development</li>
-                  <li>• Relationship expectations management</li>
-                  <li>• Emotional intelligence building</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">For Couples</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Build a strong foundation together with professional couple's counseling.
-                </p>
-                <ul className="space-y-1 text-sm">
-                  <li>• Conflict resolution strategies</li>
-                  <li>• Financial planning discussions</li>
-                  <li>• Family dynamics and boundaries</li>
-                  <li>• Future goals alignment</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Contact Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ready to Start Your Journey?</CardTitle>
-            <CardDescription>Contact our certified counselors to schedule your first session</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3 p-4 border rounded-lg">
-                <Phone className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Call Us</p>
-                  <p className="text-sm text-muted-foreground">+1 (555) 123-4567</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-4 border rounded-lg">
-                <Mail className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Email Us</p>
-                  <p className="text-sm text-muted-foreground">hello@talk2angel.com</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-4 border rounded-lg">
-                <Calendar className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Book Online</p>
-                  <p className="text-sm text-muted-foreground">24/7 scheduling</p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-6 text-center">
-              <Button size="lg" className="mr-4">
-                Schedule Consultation
-              </Button>
-              <Button variant="outline" size="lg">
-                Learn More
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>
