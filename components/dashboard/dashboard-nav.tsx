@@ -4,7 +4,7 @@ import type React from "react"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { UserCircle, FileCheck, Shield } from "lucide-react"
+import { UserCircle, FileCheck, Shield, Share2, Users, Heart } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface NavItem {
@@ -31,6 +31,21 @@ export function DashboardNav() {
       title: "Trust Score",
       href: "/dashboard/trust-score",
       icon: <Shield className="mr-2 h-4 w-4" />,
+    },
+    {
+      title: "Share",
+      href: "/dashboard/share",
+      icon: <Share2 className="mr-2 h-4 w-4" />,
+    },
+    {
+      title: "Trust Connections",
+      href: "/dashboard/trust-connections",
+      icon: <Users className="mr-2 h-4 w-4" />,
+    },
+    {
+      title: "Talk2Angel",
+      href: "/dashboard/talk2angel",
+      icon: <Heart className="mr-2 h-4 w-4" />,
     },
   ]
 
