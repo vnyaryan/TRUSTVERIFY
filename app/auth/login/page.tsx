@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -20,15 +19,40 @@ export default function LoginPage() {
     event.preventDefault()
     setIsLoading(true)
 
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false)
-      toast({
-        title: "Success",
-        description: "You have successfully logged in.",
+    const formData = new FormData(event.currentTarget)
+    const email = formData.get("email")
+    const password = formData.get("password")
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       })
-      router.push("/dashboard")
-    }, 2000)
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "You are now logged in.",
+        })
+        router.push("/dashboard")
+      } else {
+        toast({
+          title: "Login Failed",
+          description: result.message || "Please try again.",
+        })
+      }
+    } catch (error) {
+      console.error("Login error:", error)
+      toast({
+        title: "Login Error",
+        description: "Something went wrong. Please try again.",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -40,7 +64,14 @@ export default function LoginPage() {
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="m@example.com" required disabled={isLoading} />
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="m@example.com"
+            required
+            disabled={isLoading}
+          />
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -49,7 +80,13 @@ export default function LoginPage() {
               Forgot password?
             </Link>
           </div>
-          <Input id="password" type="password" required disabled={isLoading} />
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            required
+            disabled={isLoading}
+          />
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox id="remember" />
@@ -73,3 +110,4 @@ export default function LoginPage() {
     </div>
   )
 }
+
